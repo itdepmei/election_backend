@@ -15,6 +15,8 @@ const subdistrictroutes = require("./src/routes/SubDistrict.routes");
 const electionCenterroutes = require("./src/routes/ElectionCenter.routes");
 const Stationroutes = require("./src/routes/Station.routes");
 const Tapesroutes = require("./src/routes/Tapes.routes");
+const Coordinatorroutes = require('./src/routes/Coordinator.route')
+const Logroute = require('./src/routes/Log.route')
 
 const app = express();
 // app.use(cors({
@@ -55,6 +57,8 @@ app.use("/api/subdistrict", subdistrictroutes);
 app.use("/api/electioncenter", electionCenterroutes);
 app.use("/api/station", Stationroutes);
 app.use("/api/tapes", Tapesroutes);
+app.use("/api/coordinator", Coordinatorroutes);
+app.use("/api/log", Logroute);
 
 app.use("/api/", authRoutes);
 

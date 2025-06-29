@@ -30,6 +30,11 @@ const Tapes = sequelize.define("Tapes", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  status : {
+    type: DataTypes.ENUM('accepted', 'denied' , 'bending'),
+    defaultValue: 'bending'
+
+  }
 } , {
   tableName: 'Tapes',
   timestamps: false

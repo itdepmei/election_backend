@@ -8,6 +8,7 @@ router.post(
   upload.fields([{ name: "tape_image", maxCount: 1 }]),
   controller.createTapes
 );
+router.get('/stats', controller.getTapesStats); // <-- move this up
 router.get("/", controller.getTapes);
 router.get("/:id", controller.getTapeById);
 router.put(

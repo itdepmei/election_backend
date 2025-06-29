@@ -6,11 +6,18 @@ const {
   stripPasswordFromArray,
   stripPassword,
 } = require("../utils/stripPassword");
-const { District, Subdistrict, ElectionCenter } = require("../models");
-
+const District = require("../models/District.model");
+const Governate = require("../models/Governate.model");
+const ElectionCenter = require("../models/ElectionCenter.model");
+const Subdistrict = require("../models/Subdistrict.model");
+const CoordinatorElectionCenter = require("../models/CoordinatorElectionCenter");
+const DistrictManagerElectionCenter = require("../models/DistrictManagerElectionCenter");
+const sequelize = require('../config/database');
 // Admin: Add a new user
 
 exports.adminAddUser = async (req, res) => {
+  const t = await sequelize.transaction(); // start transaction
+
   try {
     const {
       email,
@@ -26,7 +33,13 @@ exports.adminAddUser = async (req, res) => {
       election_centers_id = [],
       district_id,
       governorate_id,
+      subdistrict_id,
+      has_voted,
+      confirmed_voting,
+      has_updated_card,
+      can_vote,
     } = req.body;
+
     const profileImageFile =
       req.files && req.files["profile_image"]
         ? req.files["profile_image"][0].filename
@@ -51,91 +64,135 @@ exports.adminAddUser = async (req, res) => {
       "system_admin",
     ];
     if (!validRoles.includes(role)) {
-      return res
-        .status(400)
-        .json({
-          message: `Invalid role. Allowed roles: ${validRoles.join(", ")}`,
-        });
+      await t.rollback();
+      return res.status(400).json({
+        message: "ادخل دور صحيح",
+      });
     }
 
     if (!phone_number || !password) {
+      await t.rollback();
       return res
         .status(400)
-        .json({ message: "Phone number and password are required" });
+        .json({ message: "الرجاء ادخال رقم الهاتف و كلمة المرور" });
     }
 
-    const existingUser = await User.findOne({ where: { phone_number } });
+    const existingUser = await User.findOne({ where: { phone_number }, transaction: t });
     if (existingUser) {
-      return res.status(409).json({ message: "Phone number already exists" });
+      await t.rollback();
+      return res.status(409).json({ message: "رقم الهاتف موجود" });
     }
 
     if (election_center_id) {
-      const exisitingCenter = await ElectionCenter.findOne({
+      const existingCenter = await ElectionCenter.findOne({
         where: { id: election_center_id },
+        transaction: t,
       });
-      if (!exisitingCenter) {
-        return res.status(404).json({ message: "Election Center not found" });
+      if (!existingCenter) {
+        await t.rollback();
+        return res.status(404).json({ message: "لا يوجد مركز انتخابي" });
       }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = await User.create({
-      email,
-      phone_number,
-      password_hash: hashedPassword,
-      first_name,
-      second_name,
-      last_name,
-      birth_year,
-      role,
-      election_center_id: election_center_id || null,
-      profile_image: profileImageFile || null,
-      identity_image: identityImageFile || null,
-      voting_card_image: cardImageFile || null,
-
-      is_active: is_active !== undefined ? is_active : true,
-      registration_type: "admin_created",
-      confirmed_voting: false,
-    });
+    const newUser = await User.create(
+      {
+        email,
+        phone_number,
+        password_hash: hashedPassword,
+        first_name,
+        second_name,
+        last_name,
+        birth_year,
+        role,
+        election_center_id: election_center_id || null,
+        profile_image: profileImageFile || null,
+        identity_image: identityImageFile || null,
+        voting_card_image: cardImageFile || null,
+        added_by: req.user.id, 
+        governorate_id: governorate_id || null,
+        district_id: district_id || null,
+        subdistrict_id: subdistrict_id || null,
+        has_voted: has_voted || false,
+        has_updated_card: has_updated_card || false,
+        confirmed_voting: confirmed_voting || false,
+        can_vote: can_vote || false,
+        is_active: is_active !== undefined ? is_active : true,
+        registration_type: "admin_created",
+        confirmed_voting: false,
+      },
+      { transaction: t }
+    );
 
     if (role === "coordinator") {
-      const coordinator = await Coordinator.create({
-        user_id: newUser.id,
-      });
+      try {
+        const coordinator = await Coordinator.create(
+          {
+            user_id: newUser.id,
+          },
+          { transaction: t }
+        );
 
-      if (Array.isArray(election_centers_id)) {
-        for (const centerId of election_centers_id) {
-          await CoordinatorElectionCenter.create({
-            coordinator_id: coordinator.id,
-            election_center_id: centerId,
-          });
+        if (Array.isArray(election_centers_id)) {
+          for (const centerId of election_centers_id) {
+            try {
+              await CoordinatorElectionCenter.create(
+                {
+                  coordinator_id: coordinator.id,
+                  election_center_id: centerId,
+                },
+                { transaction: t }
+              );
+            } catch (err) {
+              await t.rollback();
+              return res.status(400).json({
+                message: "خطأ في اضافة المرتكز",
+                error: err.message,
+              });
+            }
+          }
         }
+      } catch (err) {
+        await t.rollback();
+        return res.status(400).json({
+          message: "خطأ في اضافة المراكز",
+          error: err.message,
+        });
       }
     }
 
     if (role === "district_manager") {
-      const districtManager = await DistrictManager.create({
-        user_id: newUser.id,
-        governorate_id,
-        district_id,
-      });
+      const districtManager = await DistrictManager.create(
+        {
+          user_id: newUser.id,
+          governorate_id,
+          district_id,
+        },
+        { transaction: t }
+      );
 
       if (Array.isArray(election_centers_id)) {
         for (const centerId of election_centers_id) {
-          await DistrictManagerElectionCenter.create({
-            district_manager_id: districtManager.id,
-            election_center_id: centerId,
-          });
+          await DistrictManagerElectionCenter.create(
+            {
+              district_manager_id: districtManager.id,
+              election_center_id: centerId,
+            },
+            { transaction: t }
+          );
         }
       }
     }
 
+    await t.commit(); // commit transaction
     res.status(201).json({ data: stripPassword(newUser) });
   } catch (err) {
-    res.status(500).json({ message: "Failed to add user", error: err.message });
+    await t.rollback(); // rollback on error
+    res.status(500).json({ message: "فشل في اضافة مستخدم", error: err.message });
   }
 };
+
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
@@ -158,7 +215,7 @@ exports.getAllUsers = async (req, res) => {
   } catch (err) {
     res
       .status(500)
-      .json({ message: "Failed to retrieve users", error: err.message });
+      .json({ message: "فشل في جلب المستخدمين", error: err.message });
   }
 };
 
@@ -187,7 +244,7 @@ exports.getUserById = async (req, res) => {
   } catch (err) {
     res
       .status(500)
-      .json({ message: "Failed to retrieve user", error: err.message });
+      .json({ message: "فشل في جلب المستخدمين", error: err.message });
   }
 };
 
@@ -212,13 +269,13 @@ exports.getAllUsersByRole = async (req, res) => {
       ],
     });
     if (!role) {
-      return res.status(400).json({ message: "Role is required" });
+      return res.status(400).json({ message: "الدور مطلوب" });
     }
     res.json({ data: stripPasswordFromArray(users) });
   } catch (err) {
     res
       .status(500)
-      .json({ message: "Failed to retrieve users", error: err.message });
+      .json({ message: "فشل في جلب المستخدمين", error: err.message });
   }
 };
 
@@ -228,23 +285,28 @@ exports.adminUpdateUser = async (req, res) => {
     const { id } = req.params;
     const user = await User.findByPk(id);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "المستخدم غير موجود" });
     }
     const {
+      email,
+      phone_number,
       first_name,
       second_name,
       last_name,
-      phone_number,
-      email,
-      birth_year,
       role,
-      election_center_id,
       is_active,
-      profile_image,
-      identity_image,
-      voting_card_image,
+      birth_year,
+      election_center_id,
+      district_id,
+      governorate_id,
+      subdistrict_id,
       has_voted,
       confirmed_voting,
+      has_updated_card,
+      can_vote,
+      identity_image,
+      profile_image,
+      voting_card_image,
     } = req.body;
 
     const profileImageFile = req.files?.profile_image?.[0]?.filename || null;
@@ -272,6 +334,11 @@ exports.adminUpdateUser = async (req, res) => {
       is_active,
       has_voted,
       confirmed_voting,
+      district_id,
+      governorate_id,
+      subdistrict_id,
+      has_updated_card,
+      can_vote,
 
       profile_image: profileImageFile || profile_image || user.profile_image,
       identity_image:
@@ -290,7 +357,9 @@ exports.adminUpdateUser = async (req, res) => {
 
     res.status(200).json({ data: stripPassword(fullUser) });
   } catch (err) {
-    res.status(500).json({ message: "Update failed", error: err.message });
+    res
+      .status(500)
+      .json({ message: "فشل في تحديث المستخدم", error: err.message });
   }
 };
 
@@ -300,29 +369,37 @@ exports.adminDeleteUser = async (req, res) => {
     const { id } = req.params;
     const user = await User.findByPk(id);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "المستخدم غير موجود" });
     }
     if (user.role === "admin") {
-      return res
-        .status(403)
-        .json({ message: "You cannot delete another admin" });
+      return res.status(403).json({ message: "لا يمكن لادمن ان يحذف ادمن " });
     }
 
     await user.destroy();
-    res.json({ message: "User deleted successfully" });
+    res.json({ message: "تم حذف المستخدم بنجاح" });
   } catch (err) {
     res
       .status(500)
-      .json({ message: "Failed to delete user", error: err.message });
+      .json({ message: "فشل في حذف المستخدم", error: err.message });
   }
 };
 
+exports.deleteAllUsers = async (req, res) => {
+  try {
+    await User.destroy({ where: {} });
+    res.json({ message: "تم حذف جميع المستخدمين بنجاح" });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "فشل في حذف المستخدمين", error: err.message });
+  }
+};
 exports.toggleActive = async (req, res) => {
   try {
     const { id } = req.params;
     const user = await User.findByPk(id);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "المستخدم غير موجود" });
     }
     user.is_active = !user.is_active;
     await user.save();
@@ -332,7 +409,7 @@ exports.toggleActive = async (req, res) => {
   } catch (err) {
     res
       .status(500)
-      .json({ message: "Failed to toggle is_active", error: err.message });
+      .json({ message: "فشل في تغيير فعالية المستخدم", error: err.message });
   }
 };
 
@@ -342,7 +419,7 @@ exports.setAdminRole = async (req, res) => {
     const { makeAdmin } = req.body; // true to assign, false to revoke
     const user = await User.findByPk(id);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "لم يتم ايجاد المستخدم" });
     }
     user.role = makeAdmin ? "system_admin" : "user";
     await user.save();
@@ -350,7 +427,7 @@ exports.setAdminRole = async (req, res) => {
   } catch (err) {
     res
       .status(500)
-      .json({ message: "Failed to update role", error: err.message });
+      .json({ message: "فشل في تعيين دور admin", error: err.message });
   }
 };
 
@@ -359,11 +436,11 @@ exports.changeUserRole = async (req, res) => {
     const { id } = req.params;
     const { newRole } = req.body;
     if (!req.body) {
-      return res.status(400).json({ message: "Request body is missing" });
+      return res.status(400).json({ message: "ادخل المعلومات المطلوبة" });
     }
 
     if (!newRole) {
-      return res.status(400).json({ message: "New role is required" });
+      return res.status(400).json({ message: "ادخل الدور" });
     }
 
     const validRoles = [
@@ -377,13 +454,13 @@ exports.changeUserRole = async (req, res) => {
     ];
     if (!validRoles.includes(newRole)) {
       return res.status(400).json({
-        message: `Invalid role. Allowed roles: ${validRoles.join(", ")}`,
+        message: "الدور غير موجود",
       });
     }
 
     const user = await User.findByPk(id);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "المستخدم غير موجود" });
     }
 
     user.role = newRole;
@@ -393,14 +470,14 @@ exports.changeUserRole = async (req, res) => {
   } catch (err) {
     res
       .status(500)
-      .json({ message: "Failed to change user role", error: err.message });
+      .json({ message: "لا يمكن تحديث دور المستخدم", error: err.message });
   }
 };
 
 // confirm-voting
 exports.confirmVoting = async (req, res) => {
   try {
-    const { userId } = req.params; // ID of the user to confirm
+    const userId = req.params.id; // ID of the user to confirm
     const confirmerRole = req.user.role; // assuming req.user is set by auth middleware
 
     // Only allow roles higher than 'voter'
@@ -415,12 +492,12 @@ exports.confirmVoting = async (req, res) => {
     if (!allowedRoles.includes(confirmerRole)) {
       return res
         .status(403)
-        .json({ message: "Not authorized to confirm voting" });
+        .json({ message: "ليس لديك صلاحية لتاكيد التصويت" });
     }
 
     const user = await User.findByPk(userId);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "المستخدم غير موجود" });
     }
 
     user.confirmed_voting = true;
@@ -430,6 +507,6 @@ exports.confirmVoting = async (req, res) => {
   } catch (err) {
     res
       .status(500)
-      .json({ message: "Failed to confirm voting", error: err.message });
+      .json({ message: "فشل في تأكيد التصويت", error: err.message });
   }
 };

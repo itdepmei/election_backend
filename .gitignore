@@ -1,3 +1,7 @@
 node_modules
 .env
 
+uploads/profile_image/
+uploads/identity_image/
+uploads/voting_card_image/
+uploads/tape_images/

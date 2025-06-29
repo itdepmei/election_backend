@@ -6,8 +6,7 @@ const {
   stripPasswordFromArray,
   stripPassword,
 } = require("../utils/stripPassword");
-const  ElectionCenter  = require("../models");
-
+const ElectionCenter = require("../models/ElectionCenter.model");
 
 // REGISTER
 exports.register = [
@@ -35,6 +34,7 @@ exports.register = [
         has_updated_card,
         has_voted,
         election_center_id,
+        role
       } = req.body;
       const profileImageFile =
         req.files && req.files["profile_image"]
@@ -51,7 +51,7 @@ exports.register = [
 
       const existingUser = await User.findOne({ where: { phone_number } });
       if (existingUser) {
-        return res.status(409).json({ message: "phone number already exists" });
+        return res.status(409).json({ message: "رقم الهاتف مستخدم" });
       }
       const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -60,7 +60,7 @@ exports.register = [
           where: { id: election_center_id },
         });
         if (!exisitingCenter) {
-          return res.status(404).json({ message: "Election Center not found" });
+          return res.status(404).json({ message: "المركز غير موجود" });
         }
       }
 
@@ -76,7 +76,7 @@ exports.register = [
         has_updated_card,
         election_center_id,
         has_voted,
-        role: "voter",
+        role: role || "voter",
         // election_center_id: election_center_id || null,
         profile_image: profileImageFile || null,
         identity_image: identityImageFile || null,
@@ -96,6 +96,12 @@ exports.register = [
         { expiresIn: "7d" }
       );
 
+        await addLog({
+        fullname: `${newUser.first_name} ${newUser.last_name}`,
+        action: 'اضافة',
+        message: `تم تسجيل مستخدم جديد برقم الهاتف: ${newUser.phone_number}`,
+      });
+
       res.cookie("token", token, {
         httpOnly: true,
         secure: false,
@@ -109,7 +115,7 @@ exports.register = [
       console.error(err);
       res
         .status(500)
-        .json({ message: "Registration failed", error: err.message });
+        .json({ message: "فشل في تسجيل المستخدم", error: err.message });
     }
   },
 ];
@@ -135,7 +141,7 @@ exports.login = [
       if (!user || !(await bcrypt.compare(password, user.password_hash))) {
         return res
           .status(401)
-          .json({ message: "Invalid phone number or password" });
+          .json({ message: "رقم الهاتف او كلمة السر غير صحيحة" });
       }
 
       const token = jwt.sign(
@@ -143,6 +149,12 @@ exports.login = [
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
+
+      await addLog({
+        fullname: user.first_name + " " + user.last_name,
+        action: 'اضافة',
+        message: `تم تسجيل دخول المستخدم برقم الهاتف: ${user.phone_number}`,
+      });
 
       res.cookie("token", token, {
         httpOnly: true,
@@ -153,7 +165,7 @@ exports.login = [
 
       res.status(200).json({ data: stripPassword(user), token: token });
     } catch (err) {
-      res.status(500).json({ message: "Login failed", error: err.message });
+      res.status(500).json({ message: "فشل في تسجيل الدخول", error: err.message });
     }
   },
 ];
@@ -164,7 +176,17 @@ exports.logout = (req, res) => {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
   });
-  res.json({ message: "Logged out successfully" });
+
+  const fullname = req.user ? `${req.user.first_name} ${req.user.last_name}` : "مستخدم مجهول";
+
+  addLog({
+    fullname,
+    action: 'تسجيل خروج',
+    message: `تم تسجيل خروج المستخدم`,
+  });
+
+  
+  res.json({ message: "تم تسجيل الخروج بنجاح" });
 };
 
 exports.updateMe = async (req, res) => {
@@ -201,12 +223,15 @@ exports.updateMe = async (req, res) => {
     if (phone_number && phone_number !== user.phone_number) {
       const existing = await User.findOne({ where: { phone_number } });
       if (existing) {
-        return res.status(409).json({ message: "Phone number already in use" });
+        return res.status(409).json({ message: "رقم الهاتف مستخدم" });
       }
     }
 
     // Build update object dynamically
-    const updateData = {
+    const updateData = {};
+
+    // Only include fields that are not undefined
+    const fields = {
       email,
       first_name,
       second_name,
@@ -222,9 +247,6 @@ exports.updateMe = async (req, res) => {
       has_updated_card,
       has_voted,
       is_active,
-      registration_type: user.registration_type,
-      confirmed_voting: user.confirmed_voting,
-
       profile_image: profileImageFile || profile_image || user.profile_image,
       identity_image:
         identityImageFile || identity_image || user.identity_image,
@@ -232,14 +254,21 @@ exports.updateMe = async (req, res) => {
         cardImageFile || voting_card_image || user.voting_card_image,
     };
 
-    // Remove undefined so we don’t accidentally overwrite with undefined
-    Object.keys(updateData).forEach((key) => {
-      if (updateData[key] === undefined) delete updateData[key];
+    Object.entries(fields).forEach(([key, value]) => {
+      if (value !== undefined) {
+        updateData[key] = value;
+      }
     });
 
     await user.update(updateData);
 
     const fullUser = await User.findByPk(user.id);
+    await addLog({
+      fullname: `${user.first_name} ${user.last_name}`,
+      action: 'تحديث',
+      message: `تم تحديث بيانات المستخدم : ${user.fullname}`,
+    });
+
 
     const token = jwt.sign(
       {
@@ -251,12 +280,9 @@ exports.updateMe = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.status(200).json({ data: stripPassword(fullUser), token:token
-
-     });
+    res.status(200).json({ data: stripPassword(fullUser), token: token });
   } catch (err) {
-    console.error("UpdateMe Error:", err);
-    res.status(500).json({ message: "Update failed", error: err.message });
+    res.status(500).json({ message: "فشل في تحديث المستخدم", error: err.message });
   }
 };
 
@@ -266,12 +292,12 @@ exports.changePassword = async (req, res) => {
     const { oldPassword, newPassword } = req.body;
 
     if (!oldPassword || !newPassword) {
-      return res.status(400).json({ message: "Old and new password required" });
+      return res.status(400).json({ message: "يجب ادخال كلمة السر القديمة والجديدة" });
     }
 
     const isMatch = await bcrypt.compare(oldPassword, user.password_hash);
     if (!isMatch) {
-      return res.status(400).json({ message: "Old password is incorrect" });
+      return res.status(400).json({ message: "كلمة السر القديمة غير صحيحة" });
     }
 
     user.password_hash = await bcrypt.hash(newPassword, 10);
@@ -282,12 +308,17 @@ exports.changePassword = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
+    await addLog({
+      fullname: `${user.first_name} ${user.last_name}`,
+      action: 'تعديل',
+      message: `تم تغيير كلمة مرور المستخدم : ${user.fullname}`,
+    });
 
     res.status(200).json({ data: stripPassword(user), token: token });
   } catch (err) {
     res
       .status(500)
-      .json({ message: "Failed to change password", error: err.message });
+      .json({ message: "فشل في تغيير كلمة السر", error: err.message });
   }
 };
 
@@ -295,13 +326,13 @@ exports.getMe = async (req, res) => {
   try {
     const user = req.user;
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "المستخدم غير موجود" });
     }
 
     res.status(200).json({ data: stripPassword(user) });
   } catch (err) {
     res
       .status(500)
-      .json({ message: "Failed to retrieve user", error: err.message });
+      .json({ message: "فشل في جلب المعلومات", error: err.message });
   }
 };

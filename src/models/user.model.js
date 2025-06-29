@@ -92,7 +92,6 @@ subdistrict_id :{
   },
   registration_type: {
     type: DataTypes.ENUM('self_registered', 'admin_added'),
-    allowNull: false,
     defaultValue: 'self_registered',
   },
   role: {

@@ -11,21 +11,59 @@ exports.createElectionCenters = async (req, res) => {
   try {
     const input = req.body;
 
-    // Check if input is an array (bulk insert) or a single object
-    if (Array.isArray(input)) {
-      if (input.length === 0) {
-        return res.status(400).json({ message: "Empty array provided" });
+    const records = Array.isArray(input) ? input : [input];
+
+    if (records.length === 0) {
+      return res.status(400).json({ message: "القائمة المرسلة فارغة" });
+    }
+
+    for (const [index, record] of records.entries()) {
+      const { governorate_id, district_id, subdistrict_id } = record;
+
+      // تحقق من وجود القضاء وتبعيتَه للمحافظة
+      const district = await District.findOne({ where: { id: district_id } });
+      if (!district) {
+        return res.status(400).json({
+          message: `القضاء بالمعرف ${district_id} غير موجود (سطر ${index + 1})`
+        });
+      }
+      if (district.governorate_id !== governorate_id) {
+        return res.status(400).json({
+          message: `القضاء لا ينتمي إلى المحافظة المحددة (سطر ${index + 1})`
+        });
       }
 
+      // تحقق من وجود الناحية وتبعيتها للقضاء والمحافظة
+      const subdistrict = await Subdistrict.findOne({ where: { id: subdistrict_id } });
+      if (!subdistrict) {
+        return res.status(400).json({
+          message: `الناحية بالمعرف ${subdistrict_id} غير موجودة (سطر ${index + 1})`
+        });
+      }
+      if (
+        subdistrict.district_id !== district_id ||
+        subdistrict.governorate_id !== governorate_id
+      ) {
+        return res.status(400).json({
+          message: `الناحية لا تنتمي للقضاء أو المحافظة المحددة (سطر ${index + 1})`
+        });
+      }
+    }
+
+    // بعد التحقق من جميع السجلات:
+    if (Array.isArray(input)) {
       const createdCenters = await ElectionCenter.bulkCreate(input, { validate: true });
       res.status(201).json({ data: createdCenters });
     } else {
       const createdCenter = await ElectionCenter.create(input);
-      res.status(201).json({data: createdCenter });
+      res.status(201).json({ data: createdCenter });
     }
   } catch (err) {
     console.error("Create ElectionCenter Error:", err);
-    res.status(500).json({ message: "Failed to create election center(s)", error: err.message });
+    res.status(500).json({
+      message: "فشل في إنشاء مركز/مراكز الاقتراع",
+      error: err.message
+    });
   }
 };
 
@@ -42,8 +80,6 @@ exports.getElectionCenters = async (req, res) => {
         'supply_name',
         'registration_center_code',
         'registration_center_name',
-        [fn('COUNT', col('Stations.id')), 'stations_count'],
-        [fn('COUNT', col('Users.id')), 'users_count'],
         [col('Governorate.name'), 'governorate_name'],
         [col('District.name'), 'district_name'],
         [col('Subdistrict.name'), 'subdistrict_name'],
@@ -51,41 +87,50 @@ exports.getElectionCenters = async (req, res) => {
         [col('center_manager.last_name'), 'center_manager_last_name'],
       ],
       include: [
-        { model: Station, attributes: [], required: false },
-        { model: User, attributes: [], required: false },
+        {
+          model: Station,
+          attributes: ['id'], // we'll count them in JS
+          required: false,
+        },
+        {
+          model: User,
+          attributes: ['id'],
+          required: false,
+        },
         { model: Governorate, attributes: [] },
         { model: District, attributes: [] },
         { model: Subdistrict, attributes: [] },
-        { model: User, as: 'center_manager', attributes: [] }
+        { model: User, as: 'center_manager', attributes: [] },
       ],
-      group: [
-        'ElectionCenter.id',
-        'Governorate.id',
-        'District.id',
-        'Subdistrict.id',
-        'center_manager.id'
-      ]
     });
 
-    // Convert to plain JSON and rename center_manager field to a full name string
-    const data = centers.map(c => {
-      const center = c.get({ plain: true });
-      center.center_manager_name = center.center_manager_first_name && center.center_manager_last_name
-        ? `${center.center_manager_first_name} ${center.center_manager_last_name}`
-        : null;
+    const data = centers.map((center) => {
+      const plain = center.get({ plain: true });
 
-      delete center.center_manager_first_name;
-      delete center.center_manager_last_name;
+      plain.stations_count = center.Stations?.length || 0;
+      plain.users_count = center.Users?.length || 0;
 
-      return center;
+      plain.center_manager_name =
+        plain.center_manager_first_name && plain.center_manager_last_name
+          ? `${plain.center_manager_first_name} ${plain.center_manager_last_name}`
+          : null;
+
+      delete plain.center_manager_first_name;
+      delete plain.center_manager_last_name;
+      delete plain.Stations;
+      delete plain.Users;
+
+      return plain;
     });
 
     res.json({ data });
   } catch (err) {
     console.error("Error fetching election centers:", err);
-    res.status(500).json({ message: "Failed to fetch election centers", error: err.message });
+    res.status(500).json({ message: "فشل في جلب مراكز الاقتراع", error: err.message });
   }
 };
+
+
 
 exports.getElectionCenterById = async (req, res) => {
   try {
@@ -102,8 +147,6 @@ exports.getElectionCenterById = async (req, res) => {
         'supply_name',
         'registration_center_code',
         'registration_center_name',
-        [fn('COUNT', col('Stations.id')), 'stations_count'],
-        [fn('COUNT', col('Users.id')), 'users_count'],
         [col('Governorate.name'), 'governorate_name'],
         [col('District.name'), 'district_name'],
         [col('Subdistrict.name'), 'subdistrict_name'],
@@ -111,27 +154,33 @@ exports.getElectionCenterById = async (req, res) => {
         [col('center_manager.last_name'), 'center_manager_last_name'],
       ],
       include: [
-        { model: Station, attributes: [], required: false },
-        { model: User, attributes: [], required: false },
+        {
+          model: Station,
+          attributes: ['id'], // Needed for count
+          required: false,
+        },
+        {
+          model: User,
+          attributes: ['id'], // Needed for count
+          required: false,
+        },
         { model: Governorate, attributes: [] },
         { model: District, attributes: [] },
         { model: Subdistrict, attributes: [] },
         { model: User, as: 'center_manager', attributes: [] }
-      ],
-      group: [
-        'ElectionCenter.id',
-        'Governorate.id',
-        'District.id',
-        'Subdistrict.id',
-        'center_manager.id'
       ]
     });
 
     if (!center) {
-      return res.status(404).json({ message: `Election center with ID ${id} not found` });
+      return res.status(404).json({
+        message: `لم يتم العثور على مركز الاقتراع بالمعرف ${id}`
+      });
     }
 
     const result = center.get({ plain: true });
+
+    result.stations_count = center.Stations?.length || 0;
+    result.users_count = center.Users?.length || 0;
 
     result.center_manager_name = result.center_manager_first_name && result.center_manager_last_name
       ? `${result.center_manager_first_name} ${result.center_manager_last_name}`
@@ -139,13 +188,19 @@ exports.getElectionCenterById = async (req, res) => {
 
     delete result.center_manager_first_name;
     delete result.center_manager_last_name;
+    delete result.Stations;
+    delete result.Users;
 
     res.json({ data: result });
   } catch (err) {
     console.error("Error fetching election center by ID:", err);
-    res.status(500).json({ message: "Failed to fetch election center", error: err.message });
+    res.status(500).json({
+      message: "فشل في جلب مركز الاقتراع",
+      error: err.message
+    });
   }
 };
+
 
 exports.updateElectionCenter = async (req, res) => {
   try {
@@ -155,17 +210,17 @@ exports.updateElectionCenter = async (req, res) => {
     const center = await ElectionCenter.findByPk(id);
 
     if (!center) {
-      return res.status(404).json({ message: `Election center with ID ${id} not found` });
+      return res.status(404).json({ message: `لم يتم العثور على مركز الاقتراع بالمعرف ${id}` });
     }
 
     await center.update(updates);
 
-    res.json({  data: center });
+    res.json({ data: center });
   } catch (err) {
     console.error("Update error:", err);
-    res.status(500).json({ message: "Failed to update election center", error: err.message });
+    res.status(500).json({ message: "فشل في تحديث مركز الاقتراع", error: err.message });
   }
-}
+};
 
 exports.deleteElectionCenter = async (req, res) => {
   try {
@@ -174,31 +229,32 @@ exports.deleteElectionCenter = async (req, res) => {
     const deleted = await ElectionCenter.destroy({ where: { id } });
 
     if (!deleted) {
-      return res.status(404).json({ message: `Election center with ID ${id} not found` });
+      return res.status(404).json({ message: `لم يتم العثور على مركز الاقتراع بالمعرف ${id}` });
     }
 
-    res.json({ message: `Election center with ID ${id} deleted successfully` });
+    res.json({ message: `تم حذف مركز الاقتراع بالمعرف ${id} بنجاح` });
   } catch (err) {
     console.error("Delete error:", err);
-    res.status(500).json({ message: "Failed to delete election center", error: err.message });
+    res.status(500).json({ message: "فشل في حذف مركز الاقتراع", error: err.message });
   }
 };
 
 exports.deleteElectionCentersBulk = async (req, res) => {
   try {
-    const { ids } = req.body; 
+    const { ids } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ message: "Please provide an array of IDs to delete" });
+      return res.status(400).json({ message: "يرجى إرسال قائمة معرفات للحذف" });
     }
+
     const deletedCount = await ElectionCenter.destroy({
       where: { id: ids }
     });
 
-    res.json({ message: `Deleted ${deletedCount} election center(s)` });
+    res.json({ message: `تم حذف ${deletedCount} مركز اقتراع` });
   } catch (err) {
     console.error("Bulk delete error:", err);
-    res.status(500).json({ message: "Failed to delete election centers", error: err.message });
+    res.status(500).json({ message: "فشل في حذف مراكز الاقتراع", error: err.message });
   }
 };
 
@@ -206,12 +262,12 @@ exports.deleteAllElectionCenters = async (req, res) => {
   try {
     const deletedCount = await ElectionCenter.destroy({
       where: {},
-      truncate: true 
+      truncate: true
     });
 
-    res.json({ message: `All election centers deleted (${deletedCount} record(s))` });
+    res.json({ message: `تم حذف جميع مراكز الاقتراع (${deletedCount} سجل)` });
   } catch (err) {
     console.error("Delete all error:", err);
-    res.status(500).json({ message: "Failed to delete all election centers", error: err.message });
+    res.status(500).json({ message: "فشل في حذف جميع مراكز الاقتراع", error: err.message });
   }
 };

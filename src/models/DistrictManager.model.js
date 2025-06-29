@@ -7,33 +7,42 @@ const DistrictManager = sequelize.define('DistrictManager', {
     autoIncrement: true,
     primaryKey: true
   },
-  governorate_id: { // محافظة
+  user_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
+
+
+    references: {
+      model: 'users',
+      key: 'id',
+    },
+  },
+
+  governorate_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true, // Allow null so ON DELETE SET NULL works
     references: {
       model: 'governorates',
-      key: 'id'
-    }
+      key: 'id',
+    },
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
   },
-  district_id: { // قضاء
+
+  district_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     references: {
       model: 'districts',
-      key: 'id'
-    }
+      key: 'id',
+    },
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
   },
-  election_centers_id: { // المراكز
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'election_centers',
-      key: 'id'
-    }
-  }
+
 }, {
   tableName: 'district_managers',
-  timestamps: true
+  timestamps: false,
 });
 
 module.exports = DistrictManager;

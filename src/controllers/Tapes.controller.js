@@ -1,62 +1,68 @@
-const Tapes  = require("../models/Tapes.models");
-const Station = require('../models/Station.model')
-const ElectionCenter = require('../models/ElectionCenter.model')
-
+const Tapes = require("../models/Tapes.models");
+const Station = require("../models/Station.model");
+const ElectionCenter = require("../models/ElectionCenter.model");
+const District = require('../models/District.model')
+const Governorate = require('../models/Governate.model')
+const {addLog } = require('../utils/Logger')
+const sequelize = require("../config/database");
 exports.createTapes = async (req, res) => {
   try {
     const body = req.body;
-
-    // Normalize input to array
     const dataArray = Array.isArray(body) ? body : [body];
 
-    // Validate input
     for (const item of dataArray) {
       if (!item || !item.election_center_id || !item.station_id || !item.date) {
-        return res.status(400).json({ message: "Missing required fields in tape data" });
+        return res
+          .status(400)
+          .json({ message: "بعض الحقول الأساسية مفقودة في بيانات الشريط" });
       }
     }
 
-    // Normalize files
     const files = req.files?.tape_image || [];
 
-    // Construct tape data with image
     const tapesToCreate = dataArray.map((item, index) => ({
       election_center_id: item.election_center_id,
       station_id: item.station_id,
       date: item.date,
       tape_image: files[index]?.filename || null,
       notes: item.notes || null,
+      status : item.status || "bending",
     }));
 
     const tapes = await Tapes.bulkCreate(tapesToCreate, { validate: true });
+    await addLog({
+      fullname: req.user?.full_name || "مستخدم مجهول",
+      action: "إضافة",
+      message: `تم إنشاء ${tapes.length} شريط
+      }`,
+    });
 
     res.status(201).json({ data: tapes });
   } catch (err) {
-    console.error('Create Tapes Error:', err);
-    res.status(500).json({ message: 'Failed to create tapes', error: err.message });
+    console.error("خطأ أثناء إنشاء الأشرطة:", err);
+    res
+      .status(500)
+      .json({ message: "فشل في إنشاء الأشرطة", error: err.message });
   }
 };
 
-
-
 exports.getTapes = async (req, res) => {
   try {
-
-    
     const tapes = await Tapes.findAll({
       include: [
-        { model: Station, attributes: ['id', 'name'] },
-        { model: ElectionCenter, attributes: ['id', 'name'] }
-      ]
+        { model: Station, attributes: ["id", "name"] },
+        { model: ElectionCenter, attributes: ["id", "name"] },
+      ],
     });
 
     if (!tapes.length) {
-        return res.status(404).json({ message: 'No tapes found' });
-        }
+      return res.status(404).json({ message: "لا توجد أشرطة" });
+    }
+
     res.json({ data: tapes });
   } catch (err) {
-    console.error('Get Tapes Error:', err);
-    res.status(500).json({ message: 'Failed to fetch tapes', error: err.message });
+    console.error("خطأ في جلب الأشرطة:", err);
+    res.status(500).json({ message: "فشل في جلب الأشرطة", error: err.message });
   }
 };
 
@@ -64,76 +70,221 @@ exports.getTapeById = async (req, res) => {
   try {
     const tape = await Tapes.findByPk(req.params.id, {
       include: [
-        { model: Station, attributes: ['id', 'name'] },
-        { model: ElectionCenter, attributes: ['id', 'name'] }
-      ]
+        { model: Station, attributes: ["id", "name"] },
+        { model: ElectionCenter, attributes: ["id", "name"] },
+      ],
     });
 
     if (!tape) {
-      return res.status(404).json({ message: 'Tape not found' });
+      return res.status(404).json({ message: "الشريط غير موجود" });
     }
 
     res.json({ data: tape });
   } catch (err) {
-    console.error('Get Tape by ID Error:', err);
-    res.status(500).json({ message: 'Failed to fetch tape', error: err.message });
+    console.error("خطأ في جلب الشريط حسب المعرّف:", err);
+    res.status(500).json({ message: "فشل في جلب الشريط", error: err.message });
   }
 };
-
 
 exports.updateTape = async (req, res) => {
   try {
     const tape = await Tapes.findByPk(req.params.id);
 
     if (!tape) {
-      return res.status(404).json({ message: 'Tape not found' });
+      return res.status(404).json({ message: "الشريط غير موجود" });
     }
 
-    const { election_center_id, station_id, date , notes} = req.body;
+    const { election_center_id, station_id, date, notes ,status } = req.body;
 
-    const newTapeImage = req.files?.tape_image?.[0]?.filename || tape.tape_image;
+    const newTapeImage =
+      req.files?.tape_image?.[0]?.filename || tape.tape_image;
 
     const updateData = {
       election_center_id: election_center_id || tape.election_center_id,
       station_id: station_id || tape.station_id,
       date: date || tape.date,
-      tape_image: newTapeImage
-      , notes: notes || tape.notes
+      tape_image: newTapeImage,
+      notes: notes || tape.notes,
+      status: status || tape.status
     };
 
     await tape.update(updateData);
+    await addLog({
+      fullname: req.user?.full_name || "مستخدم مجهول",
+      action: "تعديل",
+      message: `تم تعديل الشريط (ID: ${tape.id})`,
+    });
 
     res.json({ data: tape });
   } catch (err) {
-    console.error('Update Tape Error:', err);
-    res.status(500).json({ message: 'Failed to update tape', error: err.message });
+    console.error("خطأ في تحديث الشريط:", err);
+    res
+      .status(500)
+      .json({ message: "فشل في تحديث الشريط", error: err.message });
   }
 };
-
 
 exports.deleteTape = async (req, res) => {
   try {
     const deleted = await Tapes.destroy({ where: { id: req.params.id } });
 
     if (!deleted) {
-      return res.status(404).json({ message: 'Tape not found' });
+      return res.status(404).json({ message: "الشريط غير موجود" });
     }
 
-    res.json({ message: 'Tape deleted successfully' });
+    await addLog({
+      fullname: req.user?.full_name || "مستخدم مجهول",
+      action: "حذف",
+      message: `تم حذف الشريط (ID: ${req.params.id})`,
+    });
+
+    res.status(205).json({ message: "تم حذف الشريط بنجاح" });
   } catch (err) {
-    console.error('Delete Tape Error:', err);
-    res.status(500).json({ message: 'Failed to delete tape', error: err.message });
+    console.error("خطأ في حذف الشريط:", err);
+    res.status(500).json({ message: "فشل في حذف الشريط", error: err.message });
   }
 };
 
 exports.deleteAllTapes = async (req, res) => {
   try {
-    const count = await Tapes.destroy({ where: {}, truncate: true });
+    await Tapes.destroy({ where: {}, truncate: true });
+    await addLog({
+      fullname: req.user?.full_name || "مستخدم مجهول",
+      action: "حذف الكل",
+      message: "تم حذف جميع الأشرطة من النظام",
+    });
 
-    res.json({ message: `All tapes deleted` });
+    res.status(205).json({ message: "تم حذف جميع الأشرطة" });
   } catch (err) {
-    console.error('Delete All Tapes Error:', err);
-    res.status(500).json({ message: 'Failed to delete all tapes', error: err.message });
+    console.error("خطأ في حذف جميع الأشرطة:", err);
+    res
+      .status(500)
+      .json({ message: "فشل في حذف جميع الأشرطة", error: err.message });
   }
 };
 
+
+exports.getTapesStats = async (req, res) => {
+  console.log("🚀 تم الوصول إلى /api/tapes/stats");
+
+  try {
+    const total = await Tapes.count();
+
+    const per_governorate = await Tapes.findAll({
+  attributes: [
+    [sequelize.col("ElectionCenter.governorate_id"), "governorate_id"],
+    [sequelize.col("ElectionCenter->Governorate.name"), "governorate_name"],
+    [sequelize.fn("COUNT", sequelize.col("Tapes.id")), "count"],
+  ],
+  include: [
+    {
+      model: ElectionCenter,
+      attributes: [],
+      include: [
+        {
+          model: Governorate , 
+          attributes: [],
+        },
+      ],
+    },
+  ],
+  group: ["ElectionCenter.governorate_id", "ElectionCenter->Governorate.name"],
+  raw: true,
+});
+
+
+const per_district = await Tapes.findAll({
+  attributes: [
+    [sequelize.col("ElectionCenter->District.id"), "district_id"],
+    [sequelize.col("ElectionCenter->District.name"), "district_name"],
+    [sequelize.fn("COUNT", sequelize.col("Tapes.id")), "count"],
+  ],
+  include: [
+    {
+      model: ElectionCenter,
+      attributes: [],
+      include: [
+        {
+          model: District,
+          attributes: [],
+        },
+      ],
+    },
+  ],
+  group: ["ElectionCenter.District.id", "ElectionCenter.District.name"],
+  raw: true,
+});
+
+
+    const by_status = await Tapes.findAll({
+      attributes: [
+        "status",
+        [sequelize.fn("COUNT", sequelize.col("status")), "count"],
+      ],
+      group: ["status"],
+    });
+
+    const per_station = await Tapes.findAll({
+      attributes: [
+        "station_id",
+        [sequelize.fn("COUNT", sequelize.col("station_id")), "count"],
+      ],
+      include: [
+        {
+          model: Station,
+          attributes: ["name"],
+        },
+      ],
+      group: ["station_id", "Station.id", "Station.name"],
+    });
+
+    const per_election_center = await Tapes.findAll({
+      attributes: [
+        "election_center_id",
+        [sequelize.fn("COUNT", sequelize.col("election_center_id")), "count"],
+      ],
+      include: [
+        {
+          model: ElectionCenter,
+          attributes: ["name"],
+        },
+      ],
+      group: ["election_center_id", "ElectionCenter.id", "ElectionCenter.name"],
+    });
+
+    const last_tape_added = await Tapes.findOne({
+      order: [["date", "DESC"]],
+      attributes: ["id", "date"],
+    });
+
+    // Count tapes from the last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const last_7_days = await Tapes.count({
+      where: {
+        date: {
+          [require("sequelize").Op.gte]: sevenDaysAgo,
+        },
+      },
+    });
+
+    res.status(200).json({
+      total,
+      by_status,
+      per_station,
+      per_election_center,
+      last_tape_added,
+      last_7_days,
+        per_district,
+  per_governorate,
+
+    });
+  } catch (err) {
+    console.error("خطأ في جلب إحصائيات الأشرطة:", err);
+    res.status(500).json({
+      message: "فشل في جلب إحصائيات الأشرطة",
+      error: err.message,
+    });
+  }
+};

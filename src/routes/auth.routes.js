@@ -20,6 +20,7 @@ const {
   getAllUsersByRole,
   changeUserRole,
   confirmVoting,
+  deleteAllUsers,
 } = require("../controllers/admin.auth.controller");
 const { authenticate, authorize } = require("../middlewares/auth.middleware");
 const upload = require("../config/multer");
@@ -50,9 +51,9 @@ router.put(
   updateMe
 );
 
-///
+
 router.use(authorize("system_admin"));
-//
+
 router.post(
   "/users",
   upload.fields([
@@ -65,8 +66,16 @@ router.post(
 router.get("/users", getAllUsers);
 router.get("/users/:id", getUserById);
 router.get("/users-role/:role", getAllUsersByRole);
-router.put("/users/:id", adminUpdateUser);
+router.put("/users/:id",
+   upload.fields([
+    { name: "profile_image", maxCount: 1 },
+    { name: "identity_image", maxCount: 1 },
+    { name: "voting_card_image", maxCount: 1 },
+  ]),
+  
+  adminUpdateUser);
 router.delete("/users/:id", adminDeleteUser);
+router.delete('/users' , deleteAllUsers)
 router.put("/toggle-active/:id", toggleActive);
 router.put("/set-admin/:id", setAdminRole);
 router.put("/change-role/:id", changeUserRole);
