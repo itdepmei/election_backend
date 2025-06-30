@@ -7,5 +7,6 @@ router.get('/', controller.getStations);
 router.get('/:id', controller.getStationById);
 router.put('/:id', controller.updateStation);
 router.delete('/:id', controller.deleteStation);
+router.get('/center/:id' , controller.getStationByCenterId)
 
 module.exports = router;

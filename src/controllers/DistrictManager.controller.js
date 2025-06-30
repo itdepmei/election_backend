@@ -1,14 +1,14 @@
-const Coordinator = require("../models/Coordinator.model");
 const User = require("../models/user.model");
 const ElectionCenter = require("../models/ElectionCenter.model");
 const bcrypt = require("bcrypt");
 const { stripPassword } = require("../utils/stripPassword");
 const sequelize = require("../config/database");
-const CoordinatorElectionCenter = require("../models/CoordinatorElectionCenter")
+const DistrictManagerElectionCenter = require("../models/DistrictManagerElectionCenter");
+const DistrictManager = require("../models/DistrictManager.model")
 
 
 
-exports.addCoordinator = async (req, res) => {
+exports.addDistrictManager = async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
@@ -19,7 +19,7 @@ exports.addCoordinator = async (req, res) => {
       first_name,
       second_name,
       last_name,
-      role = "coordinator",
+      role = "district_manager",
       is_active,
       birth_year,
       election_center_id,
@@ -37,8 +37,6 @@ exports.addCoordinator = async (req, res) => {
     } = req.body;
 
     // Print raw incoming data
-    console.log("📦 Incoming body:", req.body);
-
     // Handle file uploads if using multer
     const profileImageFile = req.files?.profile_image?.[0]?.filename || null;
     const identityImageFile = req.files?.identity_image?.[0]?.filename || null;
@@ -90,8 +88,7 @@ exports.addCoordinator = async (req, res) => {
       { transaction }
     );
 
-    // Create coordinator entry
-    const coordinator = await Coordinator.create(
+    const district_manager = await DistrictManager.create(
       { user_id: newUser.id },
       { transaction }
     );
@@ -116,7 +113,7 @@ exports.addCoordinator = async (req, res) => {
     // Clean IDs: convert to numbers & filter invalid ones
     centers = centers.map((id) => Number(id)).filter(Boolean);
 
-    console.log("✅ Cleaned election_center_ids:", centers);
+    // console.log("✅ Cleaned election_center_ids:", centers);
 
     // Insert election center links
     for (const centerId of centers) {
@@ -128,16 +125,16 @@ exports.addCoordinator = async (req, res) => {
       }
 
       try {
-        await CoordinatorElectionCenter.create(
+        await DistrictManagerElectionCenter.create(
           {
-            coordinator_id: coordinator.id,
+            district_manager_id: district_manager.id,
             election_center_id: centerId,
           },
           { transaction , validate: false },
           
         );
       } catch (linkErr) {
-        console.error("❌ Error linking coordinator to center:", linkErr.message);
+        console.error("❌ Error linking district manager to center:", linkErr.message);
         await transaction.rollback();
         return res.status(500).json({
           message: "فشل في ربط المرتكز بالمركز الانتخابي",
@@ -151,22 +148,22 @@ exports.addCoordinator = async (req, res) => {
 
     return res.status(201).json({
       data: stripPassword(newUser),
-      coordinator_id: coordinator.id,
+      
     });
   } catch (err) {
-    console.error("💥 Failed to add coordinator:", err);
+    console.error("💥 Failed to add :", err);
     await transaction.rollback();
     return res.status(500).json({
-      message: "فشل في إضافة المرتكز",
+      message: "فشل في إضافة مدير قضاء",
       error: err.message,
     });
   }
 };
 
 
-exports.getAllCoordinators = async (req, res) => {
+exports.getAllDistrictManagers = async (req, res) => {
   try {
-    const coordinators = await Coordinator.findAll({
+    const district_managers = await DistrictManager.findAll({
       attributes: { exclude: ['user_id'] },
       include: [
         {
@@ -181,28 +178,28 @@ exports.getAllCoordinators = async (req, res) => {
       ],
     });
 
-    if (!coordinators || coordinators.length === 0) {
-      return res.status(404).json({ message: "لم يتم العثور على المرتكز" });
+    if (!district_managers || district_managers.length === 0) {
+      return res.status(404).json({ message: "لم يتم العثور على مدراء اقضية" });
     }
 
     // نطبق stripPassword فقط على كل Coordinator.User
-    const cleanCoordinators = coordinators.map((coordinator) => {
-      const coordinatorJSON = coordinator.toJSON(); // نحول لكائن عادي
-      if (coordinatorJSON.User) {
-        coordinatorJSON.User = stripPassword(coordinatorJSON.User);
+    const clean_district_managers = district_managers.map((item) => {
+      const district_managerJSON = item.toJSON(); // نحول لكائن عادي
+      if (district_managerJSON.User) {
+        district_managerJSON.User = stripPassword(district_managerJSON.User);
       }
-      return coordinatorJSON;
+      return district_managerJSON;
     });
 
-    res.status(200).json({ data: cleanCoordinators });
+    res.status(200).json({ data: clean_district_managers });
   } catch (error) {
-    console.error("خطأ في جلب المرتكز:", error);
-    res.status(500).json({ message: "حدث خطأ أثناء جلب المرتكز", error: error.message });
+    console.error("خطأ في جلب مدراء اقضية:", error);
+    res.status(500).json({ message: "حدث خطأ أثناء جلب ", error: error.message });
   }
 };
 
 
-exports.updateCoordinator = async (req, res) => {
+exports.updateDistrictManager = async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
@@ -234,14 +231,14 @@ exports.updateCoordinator = async (req, res) => {
     const cardImageFile = req.files?.voting_card_image?.[0]?.filename || null;
 
     // جلب المرتكز
-    const coordinator = await Coordinator.findByPk(id, {
+    const district_manager = await DistrictManager.findByPk(id, {
       include: [User],
       transaction,
     });
 
-    if (!coordinator || !coordinator.User) {
+    if (!district_manager || !district_manager.User) {
       await transaction.rollback();
-      return res.status(404).json({ message: "المرتكز غير موجود" });
+      return res.status(404).json({ message: "مدير قضاء غير موجود" });
     }
 
     // تحديث الحقول فقط إذا تم إرسالها
@@ -267,7 +264,7 @@ exports.updateCoordinator = async (req, res) => {
       ...(cardImageFile && { voting_card_image: cardImageFile }),
     };
 
-    await coordinator.User.update(updatedFields, { transaction });
+    await district_manager.User.update(updatedFields, { transaction });
 
     // فقط إذا تم إرسال election_centers_id، حدث العلاقة
     if (req.body.election_centers_id !== undefined) {
@@ -284,18 +281,18 @@ exports.updateCoordinator = async (req, res) => {
 
       centers = centers.map((id) => Number(id)).filter(Boolean);
 
-      await coordinator.setElectionCenters([], { transaction });
+      await district_manager.setElectionCenters([], { transaction });
       const validCenters = await ElectionCenter.findAll({
         where: { id: centers },
         transaction,
       });
-      await coordinator.addElectionCenters(validCenters, { transaction });
+      await district_manager.addElectionCenters(validCenters, { transaction });
     }
 
     await transaction.commit();
 
     // إرجاع البيانات بعد التحديث
-    const coordinatorData = await Coordinator.findByPk(id, {
+    const district_manager_data = await Coordinator.findByPk(id, {
       attributes: { exclude: ['user_id'] },
       include: [
         {
@@ -310,87 +307,89 @@ exports.updateCoordinator = async (req, res) => {
       ],
     });
 
-    return res.status(200).json({ data: coordinatorData });
+    return res.status(200).json({ data: district_manager_data });
   } catch (err) {
     await transaction.rollback();
     console.error("Failed to update coordinator:", err);
     res.status(500).json({
-      message: "فشل في تحديث المرتكز",
+      message: "فشل في تحديث مدير القضاء",
       error: err.message,
     });
   }
 };
 
-exports.deleteAllCoordinators = async (req, res) => {
-  const transaction = await sequelize.transaction();
+// exports.deleteAllCoordinators = async (req, res) => {
+//   const transaction = await sequelize.transaction();
 
-  try {
-    // جلب كل المرتكزين مع المستخدمين
-    const coordinators = await Coordinator.findAll({
-      include: [User],
-      transaction,
-    });
+//   try {
+//     // جلب كل المرتكزين مع المستخدمين
+//     const coordinators = await Coordinator.findAll({
+//       include: [User],
+//       transaction,
+//     });
 
-    // حذف روابط المراكز الانتخابية لكل مرتكز
-    for (const coordinator of coordinators) {
-      await coordinator.setElectionCenters([], { transaction });
-    }
+//     // حذف روابط المراكز الانتخابية لكل مرتكز
+//     for (const coordinator of coordinators) {
+//       await coordinator.setElectionCenters([], { transaction });
+//     }
 
-    // حذف المرتكزين
-    await Coordinator.destroy({ where: {}, transaction });
+//     // حذف المرتكزين
+//     await Coordinator.destroy({ where: {}, transaction });
 
-    // حذف كل المستخدمين المرتبطين (نفترض أن المرتكز يربط مع المستخدم مباشرة)
-    for (const coordinator of coordinators) {
-      if (coordinator.User) {
-        await coordinator.User.destroy({ transaction });
-      }
-    }
+//     // حذف كل المستخدمين المرتبطين (نفترض أن المرتكز يربط مع المستخدم مباشرة)
+//     for (const coordinator of coordinators) {
+//       if (coordinator.User) {
+//         await coordinator.User.destroy({ transaction });
+//       }
+//     }
 
-    await transaction.commit();
+//     await transaction.commit();
 
-    return res.status(200).json({ message: "تم حذف كل المرتكزين بنجاح" });
-  } catch (err) {
-    await transaction.rollback();
-    console.error("فشل في حذف المرتكزين:", err);
-    return res.status(500).json({ message: "فشل في حذف المرتكزين", error: err.message });
-  }
-};
+//     return res.status(200).json({ message: "تم حذف كل المرتكزين بنجاح" });
+//   } catch (err) {
+//     await transaction.rollback();
+//     console.error("فشل في حذف المرتكزين:", err);
+//     return res.status(500).json({ message: "فشل في حذف المرتكزين", error: err.message });
+//   }
+// };
 
 
-exports.deleteCoordinator = async (req, res) => {
+exports.deletedDistrictManager = async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
     const { id } = req.params;
 
     // جلب المرتكز مع المستخدم
-    const coordinator = await Coordinator.findByPk(id, {
+    const district_manager = await DistrictManager.findByPk(id, {
       include: [User],
       transaction,
     });
 
-    if (!coordinator) {
+    if (!district_manager) {
       await transaction.rollback();
-      return res.status(404).json({ message: "المرتكز غير موجود" });
+      return res.status(404).json({ message: "مدير قضاء غير موجود" });
     }
 
     // حذف روابط المراكز الانتخابية أولاً (إلا إذا عندك ON DELETE CASCADE)
-    await coordinator.setElectionCenters([], { transaction });
+    await district_manager.setElectionCenters([], { transaction });
 
     // حذف المرتكز نفسه
-    await coordinator.destroy({ transaction });
+    await district_manager.destroy({ transaction });
 
     // حذف المستخدم المرتبط
-    if (coordinator.User) {
+    if (district_manager.User) {
       await coordinator.User.destroy({ transaction });
     }
 
     await transaction.commit();
 
-    return res.status(200).json({ message: "تم حذف المرتكز بنجاح" });
+    return res.status(200).json({ message: "تم حذف مدير القضاء بنجاح" });
   } catch (err) {
     await transaction.rollback();
-    console.error("فشل في حذف المرتكز:", err);
-    return res.status(500).json({ message: "فشل في حذف المرتكز", error: err.message });
+    console.error("فشل في حذف :", err);
+    return res.status(500).json({ message: "فشل في حذف ", error: err.message });
   }
 };
+
+

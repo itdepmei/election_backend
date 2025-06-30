@@ -19,5 +19,7 @@ router.put(
 );
 router.delete("/:id", controller.deleteTape);
 router.delete("/", controller.deleteAllTapes);
+router.get('/station/:id' , controller.getTapesByStationId)
+router.get('/center/:id' , controller.getTapesByCenterId)
 
 module.exports = router;

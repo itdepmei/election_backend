@@ -5,6 +5,7 @@ const District = require('../models/District.model')
 const Governorate = require('../models/Governate.model')
 const {addLog } = require('../utils/Logger')
 const sequelize = require("../config/database");
+const {getImagePath} = require('../utils/stripPassword')
 exports.createTapes = async (req, res) => {
   try {
     const body = req.body;
@@ -49,6 +50,10 @@ exports.createTapes = async (req, res) => {
 exports.getTapes = async (req, res) => {
   try {
     const tapes = await Tapes.findAll({
+      attributes : {
+        exclude: [ 'election_center_id' , 'station_id']
+
+      },
       include: [
         { model: Station, attributes: ["id", "name"] },
         { model: ElectionCenter, attributes: ["id", "name"] },
@@ -59,16 +64,32 @@ exports.getTapes = async (req, res) => {
       return res.status(404).json({ message: "لا توجد أشرطة" });
     }
 
-    res.json({ data: tapes });
+    // نطبق دالة getImagePath على كل tape_imageurl
+    const tapesWithFullUrl = tapes.map(tape => {
+  const tapeJson = tape.toJSON();
+  return {
+    ...tapeJson,
+    tape_imageurl: getImagePath(tapeJson.tape_image, "tapes"),
+  };
+});
+
+
+    res.json({ data: tapesWithFullUrl });
   } catch (err) {
     console.error("خطأ في جلب الأشرطة:", err);
     res.status(500).json({ message: "فشل في جلب الأشرطة", error: err.message });
   }
 };
 
+
 exports.getTapeById = async (req, res) => {
   try {
     const tape = await Tapes.findByPk(req.params.id, {
+      attributes : {
+        exclude: ['election_center_id' , 'station_id']
+
+      },
+
       include: [
         { model: Station, attributes: ["id", "name"] },
         { model: ElectionCenter, attributes: ["id", "name"] },
@@ -79,10 +100,76 @@ exports.getTapeById = async (req, res) => {
       return res.status(404).json({ message: "الشريط غير موجود" });
     }
 
-    res.json({ data: tape });
+    const tapeJson = tape.toJSON();
+    tapeJson.tape_image = getImagePath(tapeJson.tape_image, "tapes");
+
+    res.json({ data: tapeJson });
   } catch (err) {
     console.error("خطأ في جلب الشريط حسب المعرّف:", err);
     res.status(500).json({ message: "فشل في جلب الشريط", error: err.message });
+  }
+};
+
+
+exports.getTapesByCenterId = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const tapes = await Tapes.findAll({
+      where: { election_center_id: id },
+        attributes : {
+        exclude: ['election_center_id' , 'station_id']
+
+      }
+      
+    });
+
+    if (!tapes.length) {
+      return res.status(404).json({ message: "لا توجد أشرطة في هذا المركز الانتخابي" });
+    }
+
+    const tapesWithFullUrl = tapes.map(tape => {
+      const tapeJson = tape.toJSON();
+      return {
+        ...tapeJson,
+        tape_image: getImagePath(tapeJson.tape_image, "tapes"),
+      };
+    });
+
+    res.json({ data: tapesWithFullUrl });
+  } catch (err) {
+    console.error("خطأ في جلب الأشرطة حسب المركز:", err);
+    res.status(500).json({ message: "فشل في جلب الأشرطة حسب المركز", error: err.message });
+  }
+};
+
+exports.getTapesByStationId = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const tapes = await Tapes.findAll({
+      where: { station_id: id },
+      attributes: {
+        exclude: ['election_center_id', 'station_id'],
+      },
+    });
+
+    if (!tapes.length) {
+      return res.status(404).json({ message: "لا توجد أشرطة في هذه المحطة" });
+    }
+
+    const tapesWithFullUrl = tapes.map(tape => {
+      const tapeJson = tape.toJSON();
+      return {
+        ...tapeJson,
+        tape_image: tapeJson.tape_image ? getImagePath(tapeJson.tape_image, "tapes") : null,
+      };
+    });
+
+    res.json({ data: tapesWithFullUrl });
+  } catch (err) {
+    console.error("خطأ في جلب الأشرطة حسب المحطة:", err);
+    res.status(500).json({ message: "فشل في جلب الأشرطة حسب المحطة", error: err.message });
   }
 };
 

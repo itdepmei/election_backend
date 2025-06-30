@@ -37,7 +37,7 @@ const Tapes = sequelize.define("Tapes", {
   }
 } , {
   tableName: 'Tapes',
-  timestamps: false
+  timestamps: true
 
 
 });

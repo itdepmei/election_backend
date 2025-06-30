@@ -4,7 +4,7 @@ function getFullName(user) {
   return [first_name, second_name, last_name].filter(Boolean).join(' ');
 }
 
-function getImagePath(filename, type) {
+ function getImagePath(filename, type) {
   if (!filename) return null;
   const baseUrl = process.env.BASE_URL || "http://localhost:5000";
   return `${baseUrl}/uploads/${type}/${filename}`;
@@ -38,4 +38,4 @@ function stripPasswordFromArray(users) {
   return users.map(stripPassword);
 }
 
-module.exports = { stripPassword, stripPasswordFromArray };
+module.exports = { stripPassword, stripPasswordFromArray ,getImagePath };

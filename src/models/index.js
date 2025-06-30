@@ -125,101 +125,73 @@ const initModels = async () => {
       foreignKey: "user_id",
       onDelete: "SET NULL",
     });
-    User.hasOne(Coordinator, { foreignKey: "user_id", onDelete: "SET NULL" });
 
     // ========== علاقة N:N بين Coordinator و ElectionCenter ==========
-    Coordinator.belongsToMany(ElectionCenter, {
-      through: CoordinatorElectionCenter,
-      foreignKey: "coordinator_id",
-            onDelete: "SET NULL"
 
-    });
 
-    ElectionCenter.belongsToMany(Coordinator, {
-      through: CoordinatorElectionCenter,
-      foreignKey: "election_center_id",
-            onDelete: "SET NULL"
-
-    });
-
-    // DistrictManager belongs to Governorate
-    DistrictManager.belongsTo(Governorate, { foreignKey: "governorate_id" ,       onDelete: "SET NULL"
-});
-    Governorate.hasMany(DistrictManager, { foreignKey: "governorate_id" ,       onDelete: "SET NULL"
- });
-
-    // DistrictManager belongs to District
-    DistrictManager.belongsTo(District, { foreignKey: "district_id" ,       onDelete: "SET NULL"
-});
-    District.hasMany(DistrictManager, { foreignKey: "district_id" ,       onDelete: "SET NULL"
-});
-
-    // DistrictManager belongs to ElectionCenter
-    DistrictManager.belongsTo(ElectionCenter, {
-      foreignKey: "election_centers_id",
-      onDelete: "SET NULL",
-    });
-    ElectionCenter.hasMany(DistrictManager, {
-      foreignKey: "election_centers_id",
-      onDelete: "SET NULL",
-    });
-    //
 
     // Station
-    Station.belongsTo(ElectionCenter, { foreignKey: "election_center_id" ,       onDelete: "SET NULL"
-});
-    ElectionCenter.hasMany(Station, { foreignKey: "election_center_id" ,       onDelete: "SET NULL"
- });
+    Station.belongsTo(ElectionCenter, {
+      foreignKey: "election_center_id",
+      onDelete: "SET NULL",
+    });
+    ElectionCenter.hasMany(Station, {
+      foreignKey: "election_center_id",
+      onDelete: "SET NULL",
+    });
 
     // Tapes
-    Tapes.belongsTo(Station, { foreignKey: "station_id"  ,       onDelete: "SET NULL"
-});
-    Station.hasMany(Tapes, { foreignKey: "station_id" ,       onDelete: "SET NULL"
-});
+    Tapes.belongsTo(Station, {
+      foreignKey: "station_id",
+      onDelete: "SET NULL",
+    });
+    Station.hasMany(Tapes, { foreignKey: "station_id", onDelete: "SET NULL" });
 
-    Tapes.belongsTo(ElectionCenter, { foreignKey: "election_center_id" , onDelete: "SET NULL" });
-    ElectionCenter.hasMany(Tapes, { foreignKey: "election_center_id" , onDelete: "SET NULL" });
+    Tapes.belongsTo(ElectionCenter, {
+      foreignKey: "election_center_id",
+      onDelete: "SET NULL",
+    });
+    ElectionCenter.hasMany(Tapes, {
+      foreignKey: "election_center_id",
+      onDelete: "SET NULL",
+    });
 
     //
-Coordinator.belongsTo(User, { foreignKey: "user_id", onDelete: "SET NULL" });
-User.hasMany(Coordinator, { foreignKey: "user_id", onDelete: "SET NULL" });
-
-Coordinator.belongsToMany(ElectionCenter, {
-      through: CoordinatorElectionCenter,
-      foreignKey: "election_center_id",
-      onDelete : "SET NULL"
+    Coordinator.belongsTo(User, {
+      foreignKey: "user_id",
+      onDelete: "CASCADE",
     });
-    ElectionCenter.belongsToMany(Coordinator, {
-      through: CoordinatorElectionCenter,
-      foreignKey: "election_center_id",
-            onDelete : "SET NULL"
+    User.hasMany(Coordinator, { foreignKey: "user_id", onDelete: "CASCADE" });
 
-    });
-    ElectionCenter.belongsToMany(Coordinator, {
-  through: "CoordinatorElectionCenter",
-  foreignKey: "election_center_id",
-});
-Coordinator.belongsToMany(ElectionCenter, {
-  through: "CoordinatorElectionCenter",
+    Coordinator.belongsToMany(ElectionCenter, {
+  through: CoordinatorElectionCenter,
   foreignKey: "coordinator_id",
+  otherKey: "election_center_id",
+  onDelete: "CASCADE",
 });
 
-
-    DistrictManager.belongsTo(User, { foreignKey: "user_id" ,       onDelete : "SET NULL"
+ElectionCenter.belongsToMany(Coordinator, {
+  through: CoordinatorElectionCenter,
+  foreignKey: "election_center_id",
+  otherKey: "coordinator_id",
+  onDelete: "CASCADE",
 });
+
+    DistrictManager.belongsTo(User, {
+      foreignKey: "user_id",
+      onDelete: "SET NULL",
+    });
+
     DistrictManager.belongsToMany(ElectionCenter, {
-      through: DistrictManagerElectionCenter,
-      foreignKey: "district_manager_id",
-            onDelete : "SET NULL"
-
-    });
-
-    ElectionCenter.belongsToMany(DistrictManager, {
-      through: DistrictManagerElectionCenter,
-      foreignKey: "election_center_id",
-      onDelete : "SET NULL"
-    });
-
+  through: DistrictManagerElectionCenter,
+  foreignKey: "district_manager_id",
+  otherKey: "election_center_id"
+});
+ElectionCenter.belongsToMany(DistrictManager, {
+  through: DistrictManagerElectionCenter,
+  foreignKey: "election_center_id",
+  otherKey: "district_manager_id"
+});
     await sequelize.sync();
     console.log("✅ Models synced");
   } catch (err) {

@@ -96,6 +96,41 @@ exports.getStationById = async (req, res) => {
   }
 };
 
+
+exports.getStationByCenterId = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const stations = await Station.findAll({
+      attributes: [
+        "id",
+        "name",
+        "code",
+        "election_center_id",
+        [sequelize.fn("COUNT", sequelize.col("Tapes.id")), "tape_count"],
+            "createdAt",   // تضيفهم صراحة لو تبي
+    "updatedAt",
+
+      ],
+      where: { election_center_id: id },
+      include: [
+        {
+          model: Tapes,
+          attributes: [],
+          required: false,
+        },
+      ],
+      group: ["Station.id"],
+    });
+
+    res.json({ data: stations });
+  } catch (err) {
+    console.error("Error fetching stations by center ID:", err);
+    res.status(500).json({ message: "حدث خطأ أثناء جلب المحطات", error: err.message });
+  }
+};
+
+
 exports.updateStation = async (req, res) => {
   try {
     const { id } = req.params;

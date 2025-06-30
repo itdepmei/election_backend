@@ -1,6 +1,5 @@
-// models/DistrictManagerElectionCenter.js
-const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
+const { DataTypes } = require('sequelize');
 
 const DistrictManagerElectionCenter = sequelize.define("DistrictManagerElectionCenter", {
   district_manager_id: {
@@ -10,7 +9,7 @@ const DistrictManagerElectionCenter = sequelize.define("DistrictManagerElectionC
       model: 'district_managers',
       key: 'id',
     },
-    onDelete: 'CASCADE',
+    primaryKey: true,
   },
   election_center_id: {
     type: DataTypes.INTEGER,
@@ -19,17 +18,16 @@ const DistrictManagerElectionCenter = sequelize.define("DistrictManagerElectionC
       model: 'election_centers',
       key: 'id',
     },
-    onDelete: 'CASCADE',
+    primaryKey: true,
   },
 }, {
-  tableName: "district_manager_center",
+  tableName: "District_managers_centers",
   timestamps: false,
   uniqueKeys: {
-    district_election_unique: {
+    short_unique: { // اسم بسيط قصير
       fields: ['district_manager_id', 'election_center_id']
     }
   }
 });
 
-
-module.exports = DistrictManagerElectionCenter;
+module.exports = DistrictManagerElectionCenter

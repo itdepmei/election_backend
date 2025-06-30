@@ -1,22 +1,24 @@
 const express = require('express');
 const router = express.Router();
-const Coordinator = require('../controllers/Coordinator.controller');
+const DistrictManager = require('../controllers/DistrictManager.controller');
 const upload = require('../config/multer')
 
 
-router.get('/', Coordinator.getAllCoordinators);
 router.post('/', upload.fields([
   { name: 'profile_image' },
   { name: 'identity_image' },
   { name: 'voting_card_image' }
-]), Coordinator.addCoordinator);
+]), DistrictManager.addDistrictManager);
 
-router.put('/:id', upload.fields([
+router.get('/' , DistrictManager.getAllDistrictManagers)
+
+router.put('/', upload.fields([
   { name: 'profile_image' },
   { name: 'identity_image' },
   { name: 'voting_card_image' }
-]), Coordinator.updateCoordinator);
-router.delete('/' , Coordinator.deleteAllCoordinators)
-router.delete("/:id" , Coordinator.deleteCoordinator)
+]), DistrictManager.updateDistrictManager);
+
+router.delete('/' , DistrictManager.deletedDistrictManager)
+
 
 module.exports = router;
