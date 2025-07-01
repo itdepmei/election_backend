@@ -7,6 +7,7 @@ const {
   stripPassword,
 } = require("../utils/stripPassword");
 const ElectionCenter = require("../models/ElectionCenter.model");
+const {addLog} = require('../utils/Logger')
 
 // REGISTER
 exports.register = [

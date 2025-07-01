@@ -13,7 +13,10 @@ const Subdistrict = require("../models/Subdistrict.model");
 const CoordinatorElectionCenter = require("../models/CoordinatorElectionCenter");
 const DistrictManagerElectionCenter = require("../models/DistrictManagerElectionCenter");
 const sequelize = require('../config/database');
+const {addLog} = require('../utils/Logger')
+
 // Admin: Add a new user
+
 
 exports.adminAddUser = async (req, res) => {
   const t = await sequelize.transaction(); // start transaction
