@@ -1,7 +1,7 @@
 const { Tapes, ElectionCenter } = require("../models");
 const Station = require("../models/Station.model");
 const sequelize = require("../config/database");
-const { addLog } = require("../utils/Logger");
+// const { addLog } = require("../utils/Logger");
 
 exports.createStations = async (req, res) => {
   try {
@@ -13,19 +13,15 @@ exports.createStations = async (req, res) => {
       }
 
       const created = await Station.bulkCreate(input, { validate: true });
-      await addLog({
-        fullname: req.user?.full_name || "مستخدم مجهول",
-        action: "إضافة",
-        message: `تم إنشاء ${created.length} محطة `,
-      });
+      // await addLog({
+      //   fullname: req.user?.full_name || "مستخدم مجهول",
+      //   action: "إضافة",
+      //   message: `تم إنشاء ${created.length} محطة `,
+      // });
       return res.status(201).json({ data: created });
     } else {
       const created = await Station.create(input);
-      await addLog({
-        fullname: req.user?.full_name || "مستخدم مجهول",
-        action: "إضافة",
-        message: `تم إنشاء  محطة `,
-      });
+  
 
       return res.status(201).json({ data: created });
     }
@@ -149,11 +145,11 @@ exports.updateStation = async (req, res) => {
     }
 
     await station.update(updates);
-    await addLog({
-      fullname: req.user?.full_name || "مستخدم مجهول",
-      action: "تعديل",
-      message: `تم تعديل محطة: ${station.name} (ID: ${station.id})`,
-    });
+    // await addLog({
+    //   fullname: req.user?.full_name || "مستخدم مجهول",
+    //   action: "تعديل",
+    //   message: `تم تعديل محطة: ${station.name} (ID: ${station.id})`,
+    // });
 
     res.status(200).json({ data: station });
   } catch (err) {
@@ -179,11 +175,11 @@ exports.deleteStation = async (req, res) => {
         .json({ message: `لم يتم العثور على محطة بالمعرّف ${id}` });
     }
 
-    await addLog({
-      fullname: req.user?.full_name || "مستخدم مجهول",
-      action: "حذف",
-      message: `تم حذف محطة بالمعرف ${id}`,
-    });
+    // await addLog({
+    //   fullname: req.user?.full_name || "مستخدم مجهول",
+    //   action: "حذف",
+    //   message: `تم حذف محطة بالمعرف ${id}`,
+    // });
 
     res.status(204).json({ message: `تم حذف المحطة بالمعرّف ${id}` });
   } catch (err) {
@@ -194,11 +190,11 @@ exports.deleteStation = async (req, res) => {
 exports.deleteAllStations = async (req, res) => {
   try {
     await Station.destroy({ where: {}, truncate: true }); // يحذف الكل ويعيد العدادات
-    await addLog({
-      fullname: req.user?.full_name || "مستخدم مجهول",
-      action: "حذف الكل",
-      message: "تم حذف جميع المحطات من النظام",
-    });
+    // await addLog({
+    //   fullname: req.user?.full_name || "مستخدم مجهول",
+    //   action: "حذف الكل",
+    //   message: "تم حذف جميع المحطات من النظام",
+    // });
 
     res.status(205).json({
       message: "تم حذف جميع المحطات بنجاح",

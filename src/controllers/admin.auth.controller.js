@@ -65,6 +65,7 @@ exports.adminAddUser = async (req, res) => {
       "district_manager",
       "finance_auditor",
       "system_admin",
+      "owner"
     ];
     if (!validRoles.includes(role)) {
       await t.rollback();
@@ -124,69 +125,70 @@ exports.adminAddUser = async (req, res) => {
         is_active: is_active !== undefined ? is_active : true,
         registration_type: "admin_created",
         confirmed_voting: false,
+        campaign_id : req.user.campaign_id
       },
       { transaction: t }
     );
 
-    if (role === "coordinator") {
-      try {
-        const coordinator = await Coordinator.create(
-          {
-            user_id: newUser.id,
-          },
-          { transaction: t }
-        );
+    // if (role === "coordinator") {
+    //   try {
+    //     const coordinator = await Coordinator.create(
+    //       {
+    //         user_id: newUser.id,
+    //       },
+    //       { transaction: t }
+    //     );
 
-        if (Array.isArray(election_centers_id)) {
-          for (const centerId of election_centers_id) {
-            try {
-              await CoordinatorElectionCenter.create(
-                {
-                  coordinator_id: coordinator.id,
-                  election_center_id: centerId,
-                },
-                { transaction: t }
-              );
-            } catch (err) {
-              await t.rollback();
-              return res.status(400).json({
-                message: "خطأ في اضافة المرتكز",
-                error: err.message,
-              });
-            }
-          }
-        }
-      } catch (err) {
-        await t.rollback();
-        return res.status(400).json({
-          message: "خطأ في اضافة المراكز",
-          error: err.message,
-        });
-      }
-    }
+    //     if (Array.isArray(election_centers_id)) {
+    //       for (const centerId of election_centers_id) {
+    //         try {
+    //           await CoordinatorElectionCenter.create(
+    //             {
+    //               coordinator_id: coordinator.id,
+    //               election_center_id: centerId,
+    //             },
+    //             { transaction: t }
+    //           );
+    //         } catch (err) {
+    //           await t.rollback();
+    //           return res.status(400).json({
+    //             message: "خطأ في اضافة المرتكز",
+    //             error: err.message,
+    //           });
+    //         }
+    //       }
+    //     }
+    //   } catch (err) {
+    //     await t.rollback();
+    //     return res.status(400).json({
+    //       message: "خطأ في اضافة المراكز",
+    //       error: err.message,
+    //     });
+    //   }
+    // }
 
-    if (role === "district_manager") {
-      const districtManager = await DistrictManager.create(
-        {
-          user_id: newUser.id,
-          governorate_id,
-          district_id,
-        },
-        { transaction: t }
-      );
+    // if (role === "district_manager") {
+    //   const districtManager = await DistrictManager.create(
+    //     {
+    //       user_id: newUser.id,
+    //       governorate_id,
+    //       district_id,
+    //     },
+    //     { transaction: t }
+    //   );
 
-      if (Array.isArray(election_centers_id)) {
-        for (const centerId of election_centers_id) {
-          await DistrictManagerElectionCenter.create(
-            {
-              district_manager_id: districtManager.id,
-              election_center_id: centerId,
-            },
-            { transaction: t }
-          );
-        }
-      }
-    }
+    //   if (Array.isArray(election_centers_id)) {
+    //     for (const centerId of election_centers_id) {
+    //       await DistrictManagerElectionCenter.create(
+    //         {
+    //           district_manager_id: districtManager.id,
+    //           election_center_id: centerId,
+    //         },
+    //         { transaction: t }
+    //       );
+    //     }
+    //   }
+    // }
 
     await t.commit(); // commit transaction
     res.status(201).json({ data: stripPassword(newUser) });
@@ -199,6 +201,7 @@ exports.adminAddUser = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
+        where : {campaign_id : req.user.campaign_id},
       include: [
         {
           model: District,

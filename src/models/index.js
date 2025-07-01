@@ -11,7 +11,7 @@ const Station = require("./Station.model");
 const Tapes = require("./Tapes.models");
 const CoordinatorElectionCenter = require("./CoordinatorElectionCenter");
 const DistrictManagerElectionCenter = require("./DistrictManagerElectionCenter");
-
+const Campaign = require("./Campain.model");
 const Log = require("./log.model");
 
 const initModels = async () => {
@@ -156,6 +156,19 @@ const initModels = async () => {
       onDelete: "SET NULL",
     });
 
+    Tapes.belongsTo(User , {foreignKey: "added_by", onDelete: "SET NULL"});
+
+    User.hasMany(Tapes , {foreignKey: "added_by", onDelete: "SET NULL"});
+        Campaign.belongsTo(User, {
+      foreignKey: 'created_by',
+      onDelete: 'CASCADE',
+    });
+
+    // campaign has many users
+    Campaign.hasMany(User, {
+      foreignKey: 'campaign_id',
+    });
+
     //
     Coordinator.belongsTo(User, {
       foreignKey: "user_id",
@@ -192,6 +205,9 @@ ElectionCenter.belongsToMany(DistrictManager, {
   foreignKey: "election_center_id",
   otherKey: "district_manager_id"
 });
+
+
+
     await sequelize.sync();
     console.log("✅ Models synced");
   } catch (err) {

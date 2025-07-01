@@ -3,7 +3,7 @@ const District = require("../models/District.model");
 const Subdistrict = require("../models/Subdistrict.model");
 const ElectionCenter = require("../models/ElectionCenter.model");
 const { User } = require("../models");
-const { addLog } = require('../utils/Logger')
+const { addLog } = require("../utils/Logger");
 
 // POST - Create one or many governorates
 // إنشاء المحافظات
@@ -18,29 +18,32 @@ exports.createGovernorates = async (req, res) => {
     const records = Array.isArray(data) ? data : [data];
 
     const names = records.map((r) => r.name);
+    const codes = records.map((r) => r.code);
 
     const existing = await Governorate.findAll({
-      where: { name: names },
+      where: { name: names, code: codes },
     });
 
     const existingNames = existing.map((g) => g.name);
+    const existingCodes = existing.map((g) => g.code);
 
     const filteredRecords = records.filter(
-      (r) => !existingNames.includes(r.name)
+      (r) => !existingNames.includes(r.name) && !existingCodes.includes(r.code)
     );
 
     if (filteredRecords.length === 0) {
-      return res
-        .status(409)
-        .json({
-          message: "جميع المحافظات المدخلة موجودة مسبقاً",
-          duplicates: existingNames,
-        });
+      return res.status(409).json({
+        message: "جميع المحافظات المدخلة موجودة مسبقاً",
+        duplicateNames: existingNames,
+        duplicateCodes: existingCodes,
+      });
     }
 
     const newGovernorates = await Governorate.bulkCreate(filteredRecords);
     await addLog({
-      fullname: req.user?.fullname || "Unknown user", // get logged-in user name if you have it
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
       action: "اضافة",
       message: `تم اضافة محافظة: ${filteredRecords
         .map((r) => r.name)
@@ -149,10 +152,13 @@ exports.updateGovernorate = async (req, res) => {
 
     await governorate.update(req.body);
     await addLog({
-  fullname: req.user?.fullname || "Unknown user",
-  action: "تعديل",
-  message: `تم تحديث المحافظة ${governorate.name} بنجاح`,
-});
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+
+      action: "تعديل",
+      message: `تم تحديث المحافظة ${governorate.name} بنجاح`,
+    });
 
     res.json({ data: governorate });
   } catch (err) {
@@ -176,13 +182,15 @@ exports.deleteGovernorate = async (req, res) => {
     res.json({ message: "تم حذف المحافظة بنجاح" });
     await governorate.destroy();
 
-// Log the DELETE action
-await addLog({
-  fullname: req.user?.fullname || "Unknown user",
-  action: "حذف",
-  message: `تم حذف محافظة ${governorate.name} بنجاح`,
-});
+    // Log the DELETE action
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
 
+      action: "حذف",
+      message: `تم حذف محافظة ${governorate.name} بنجاح`,
+    });
   } catch (err) {
     res
       .status(500)
@@ -197,17 +205,17 @@ exports.deleteAllGovernorates = async (req, res) => {
     res.json({ message: "تم حذف جميع المحافظات بنجاح" });
     await governorate.destroy();
 
-// Log the DELETE action
-await addLog({
-  fullname: req.user?.fullname || "Unknown user",
-  action: "حذف",
-  message: `تم حذف جميع الملاحظات`,
-});
-
+    // Log the DELETE action
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      action: "حذف",
+      message: `تم حذف جميع الملاحظات`,
+    });
   } catch (err) {
     res
       .status(500)
       .json({ message: "فشل في حذف جميع المحافظات", error: err.message });
   }
 };
-

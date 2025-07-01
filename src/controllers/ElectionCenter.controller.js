@@ -56,6 +56,8 @@ exports.createElectionCenters = async (req, res) => {
       res.status(201).json({ data: createdCenters });
     } else {
       const createdCenter = await ElectionCenter.create(input);
+
+      
       res.status(201).json({ data: createdCenter });
     }
   } catch (err) {

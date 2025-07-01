@@ -147,7 +147,7 @@ exports.addDistrictManager = async (req, res) => {
     await transaction.commit();
 
     return res.status(201).json({
-      data: stripPassword(newUser),
+      data:{ ...stripPassword(newUser), district_manager_id : district_manager.id}
       
     });
   } catch (err) {
@@ -198,6 +198,38 @@ exports.getAllDistrictManagers = async (req, res) => {
   }
 };
 
+
+exports.GetDistrictManagersbyId = async (req, res) => {
+  const { id}  = req.params
+  try {
+    const district_manager = await DistrictManager.findByPk( id , {
+      attributes: { exclude: ['user_id'] },
+      include: [
+        {
+          model: User,
+          // راح نستخدم stripPassword بعدين
+        },
+        {
+          model: ElectionCenter,
+          attributes: ['id', 'name'],
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    if (!district_manager || district_manager.length === 0) {
+      return res.status(404).json({ message: "لم يتم العثور على مدراء اقضية" });
+    }
+
+    // نطبق stripPassword فقط على كل Coordinator.User
+    const  district_managerJSON = stripPassword(district_manager.User);
+      
+    res.status(200).json({ data: district_managerJSON });
+  } catch (error) {
+    console.error("خطأ في جلب مدراء اقضية:", error);
+    res.status(500).json({ message: "حدث خطأ أثناء جلب ", error: error.message });
+  }
+};
 
 exports.updateDistrictManager = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -292,7 +324,7 @@ exports.updateDistrictManager = async (req, res) => {
     await transaction.commit();
 
     // إرجاع البيانات بعد التحديث
-    const district_manager_data = await Coordinator.findByPk(id, {
+    const district_manager_data = await DistrictManager.findByPk(id, {
       attributes: { exclude: ['user_id'] },
       include: [
         {

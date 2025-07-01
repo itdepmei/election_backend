@@ -3,6 +3,7 @@ const User = require("../models/user.model");
 
 exports.authenticate = async (req, res, next) => {  
   let token;
+  console.log("auth")
 
   // Check Authorization header for Bearer token
   if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
@@ -14,6 +15,7 @@ exports.authenticate = async (req, res, next) => {
   }
 
 
+
   if (!token) {
     return res.status(401).json({ message: "Authentication required" });
   }
@@ -21,8 +23,10 @@ exports.authenticate = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findByPk(decoded.id);
+    console.log("user auth")
     if (!user) {
       return res.status(401).json({ message: "Invalid token user" });
+      
     }
     req.user = user;
     next();
@@ -32,11 +36,36 @@ exports.authenticate = async (req, res, next) => {
 };
 
 // Authorization middleware: checks for required role
-exports.authorize = (role) => (req, res, next) => {
-  console.log("rolebbbbbbbbb" , req.user.role)
-  if (!req.user || req.user.role !== role) {
-    console.log("not authorized")
-    return res.status(403).json({ message: "Forbidden: insufficient privileges" });
-  }
-  next();
+exports.authorize = (roles) => {
+  return (req, res, next) => {
+    const userRole = req.user?.role?.toLowerCase().trim();
+
+    console.log("🟨 Required Roles:", roles);
+    console.log("🟦 User Role:", userRole);
+
+    if (!userRole || !roles.includes(userRole)) {
+      console.log("❌ Access Denied");
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    console.log("✅ Access Granted");
+    next();
+  };
+};
+
+exports.authorizeExcept = (excludedRoles) => {
+  return (req, res, next) => {
+    const userRole = req.user?.role?.toLowerCase().trim();
+    console.log("ggggggg" , userRole)
+
+    if (!userRole) {
+      return res.status(401).json({ message: "Unauthorized: missing role" });
+    }
+
+    if (excludedRoles.includes(userRole)) {
+      return res.status(403).json({ message: `Access denied for role: ${userRole}` });
+    }
+
+    next();
+  };
 };

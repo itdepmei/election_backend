@@ -11,7 +11,8 @@ const Governorate = sequelize.define('Governorate', {
     type: DataTypes.STRING,
     allowNull: false,
 
-  }
+  },
+  
 }, {
   tableName: 'governorates',
   timestamps: false

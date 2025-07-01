@@ -4,9 +4,7 @@ const ElectionCenter = require("../models/ElectionCenter.model");
 const bcrypt = require("bcrypt");
 const { stripPassword } = require("../utils/stripPassword");
 const sequelize = require("../config/database");
-const CoordinatorElectionCenter = require("../models/CoordinatorElectionCenter")
-
-
+const CoordinatorElectionCenter = require("../models/CoordinatorElectionCenter");
 
 exports.addCoordinator = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -47,7 +45,9 @@ exports.addCoordinator = async (req, res) => {
     // Required fields
     if (!phone_number || !password) {
       await transaction.rollback();
-      return res.status(400).json({ message: "رقم الهاتف وكلمة المرور مطلوبة" });
+      return res
+        .status(400)
+        .json({ message: "رقم الهاتف وكلمة المرور مطلوبة" });
     }
 
     // Check for existing user
@@ -61,7 +61,7 @@ exports.addCoordinator = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
- 
+
     // Create user
     const newUser = await User.create(
       {
@@ -81,8 +81,10 @@ exports.addCoordinator = async (req, res) => {
         district_id: district_id || null,
         subdistrict_id: subdistrict_id || null,
         has_voted: has_voted === "true" || has_voted === true,
-        confirmed_voting: confirmed_voting === "true" || confirmed_voting === true,
-        has_updated_card: has_updated_card === "true" || has_updated_card === true,
+        confirmed_voting:
+          confirmed_voting === "true" || confirmed_voting === true,
+        has_updated_card:
+          has_updated_card === "true" || has_updated_card === true,
         can_vote: can_vote === "true" || can_vote === true,
         is_active: is_active !== undefined ? is_active : true,
         registration_type: "admin_added",
@@ -124,7 +126,9 @@ exports.addCoordinator = async (req, res) => {
 
       if (!center) {
         await transaction.rollback();
-        return res.status(404).json({ message: `المركز الانتخابي غير موجود: ${centerId}` });
+        return res
+          .status(404)
+          .json({ message: `المركز الانتخابي غير موجود: ${centerId}` });
       }
 
       try {
@@ -133,11 +137,13 @@ exports.addCoordinator = async (req, res) => {
             coordinator_id: coordinator.id,
             election_center_id: centerId,
           },
-          { transaction , validate: false },
-          
+          { transaction, validate: false }
         );
       } catch (linkErr) {
-        console.error("❌ Error linking coordinator to center:", linkErr.message);
+        console.error(
+          "❌ Error linking coordinator to center:",
+          linkErr.message
+        );
         await transaction.rollback();
         return res.status(500).json({
           message: "فشل في ربط المرتكز بالمركز الانتخابي",
@@ -150,8 +156,10 @@ exports.addCoordinator = async (req, res) => {
     await transaction.commit();
 
     return res.status(201).json({
-      data: stripPassword(newUser),
-      coordinator_id: coordinator.id,
+      data: {
+        ...stripPassword(newUser),
+        coordinator_id: coordinator.id,
+      },
     });
   } catch (err) {
     console.error("💥 Failed to add coordinator:", err);
@@ -163,11 +171,10 @@ exports.addCoordinator = async (req, res) => {
   }
 };
 
-
 exports.getAllCoordinators = async (req, res) => {
   try {
     const coordinators = await Coordinator.findAll({
-      attributes: { exclude: ['user_id'] },
+      attributes: { exclude: ["user_id"] },
       include: [
         {
           model: User,
@@ -175,7 +182,7 @@ exports.getAllCoordinators = async (req, res) => {
         },
         {
           model: ElectionCenter,
-          attributes: ['id', 'name'],
+          attributes: ["id", "name"],
           through: { attributes: [] },
         },
       ],
@@ -197,10 +204,51 @@ exports.getAllCoordinators = async (req, res) => {
     res.status(200).json({ data: cleanCoordinators });
   } catch (error) {
     console.error("خطأ في جلب المرتكز:", error);
-    res.status(500).json({ message: "حدث خطأ أثناء جلب المرتكز", error: error.message });
+    res
+      .status(500)
+      .json({ message: "حدث خطأ أثناء جلب المرتكز", error: error.message });
   }
 };
 
+exports.getCoordinatorById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const coordinators = await Coordinator.findAll({
+      attributes: { where: { id: id }, exclude: ["user_id"] },
+      include: [
+        {
+          model: User,
+          // راح نستخدم stripPassword بعدين
+        },
+        {
+          model: ElectionCenter,
+          attributes: ["id", "name"],
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    if (!coordinators || coordinators.length === 0) {
+      return res.status(404).json({ message: "لم يتم العثور على المرتكز" });
+    }
+
+    // نطبق stripPassword فقط على كل Coordinator.User
+    const cleanCoordinators = coordinators.map((coordinator) => {
+      const coordinatorJSON = coordinator.toJSON(); // نحول لكائن عادي
+      if (coordinatorJSON.User) {
+        coordinatorJSON.User = stripPassword(coordinatorJSON.User);
+      }
+      return coordinatorJSON;
+    });
+
+    res.status(200).json({ data: cleanCoordinators });
+  } catch (error) {
+    console.error("خطأ في جلب المرتكز:", error);
+    res
+      .status(500)
+      .json({ message: "حدث خطأ أثناء جلب المرتكز", error: error.message });
+  }
+};
 
 exports.updateCoordinator = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -256,10 +304,20 @@ exports.updateCoordinator = async (req, res) => {
       ...(governorate_id !== undefined && { governorate_id }),
       ...(district_id !== undefined && { district_id }),
       ...(subdistrict_id !== undefined && { subdistrict_id }),
-      ...(has_voted !== undefined && { has_voted: has_voted === "true" || has_voted === true }),
-      ...(confirmed_voting !== undefined && { confirmed_voting: confirmed_voting === "true" || confirmed_voting === true }),
-      ...(has_updated_card !== undefined && { has_updated_card: has_updated_card === "true" || has_updated_card === true }),
-      ...(can_vote !== undefined && { can_vote: can_vote === "true" || can_vote === true }),
+      ...(has_voted !== undefined && {
+        has_voted: has_voted === "true" || has_voted === true,
+      }),
+      ...(confirmed_voting !== undefined && {
+        confirmed_voting:
+          confirmed_voting === "true" || confirmed_voting === true,
+      }),
+      ...(has_updated_card !== undefined && {
+        has_updated_card:
+          has_updated_card === "true" || has_updated_card === true,
+      }),
+      ...(can_vote !== undefined && {
+        can_vote: can_vote === "true" || can_vote === true,
+      }),
       ...(is_active !== undefined && { is_active }),
       ...(password && { password_hash: await bcrypt.hash(password, 10) }),
       ...(profileImageFile && { profile_image: profileImageFile }),
@@ -296,15 +354,15 @@ exports.updateCoordinator = async (req, res) => {
 
     // إرجاع البيانات بعد التحديث
     const coordinatorData = await Coordinator.findByPk(id, {
-      attributes: { exclude: ['user_id'] },
+      attributes: { exclude: ["user_id"] },
       include: [
         {
           model: User,
-          attributes: { exclude: ['password_hash'] },
+          attributes: { exclude: ["password_hash"] },
         },
         {
           model: ElectionCenter,
-          attributes: ['id', 'name'],
+          attributes: ["id", "name"],
           through: { attributes: [] },
         },
       ],
@@ -352,10 +410,11 @@ exports.deleteAllCoordinators = async (req, res) => {
   } catch (err) {
     await transaction.rollback();
     console.error("فشل في حذف المرتكزين:", err);
-    return res.status(500).json({ message: "فشل في حذف المرتكزين", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "فشل في حذف المرتكزين", error: err.message });
   }
 };
-
 
 exports.deleteCoordinator = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -391,6 +450,8 @@ exports.deleteCoordinator = async (req, res) => {
   } catch (err) {
     await transaction.rollback();
     console.error("فشل في حذف المرتكز:", err);
-    return res.status(500).json({ message: "فشل في حذف المرتكز", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "فشل في حذف المرتكز", error: err.message });
   }
 };

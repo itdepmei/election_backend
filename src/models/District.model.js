@@ -18,7 +18,10 @@ const District = sequelize.define('District', {
       model: 'governorates',
       key: 'id'
     }
-  }
+
+  },
+  
+
 }, {
   tableName: 'districts',
   timestamps: false

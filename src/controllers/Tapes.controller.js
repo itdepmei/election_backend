@@ -6,6 +6,9 @@ const Governorate = require('../models/Governate.model')
 const {addLog } = require('../utils/Logger')
 const sequelize = require("../config/database");
 const {getImagePath} = require('../utils/stripPassword')
+const User = require('../models/user.model')
+const { formatTape } = require('../utils/formatTape');
+
 exports.createTapes = async (req, res) => {
   try {
     const body = req.body;
@@ -27,16 +30,22 @@ exports.createTapes = async (req, res) => {
       date: item.date,
       tape_image: files[index]?.filename || null,
       notes: item.notes || null,
-      status : item.status || "bending",
+      status : item.status || "قيد المراجعة",
+      added_by : req.user.id ,
     }));
 
     const tapes = await Tapes.bulkCreate(tapesToCreate, { validate: true });
-    await addLog({
-      fullname: req.user?.full_name || "مستخدم مجهول",
-      action: "إضافة",
-      message: `تم إنشاء ${tapes.length} شريط
-      }`,
-    });
+
+    
+
+    // await addLog({
+    //   first_name: req.user?.first_name || "" ,
+    //   second_name: req.user?.second_name || "",
+    //   last_name: req.user?.last_name  || "",
+    //   action: "إضافة",
+    //   message: `تم إنشاء ${tapes.length} شريط
+    //   `,
+    // });
 
     res.status(201).json({ data: tapes });
   } catch (err) {
@@ -47,16 +56,20 @@ exports.createTapes = async (req, res) => {
   }
 };
 
+
 exports.getTapes = async (req, res) => {
   try {
     const tapes = await Tapes.findAll({
-      attributes : {
-        exclude: [ 'election_center_id' , 'station_id']
-
+      attributes: {
+        exclude: ['election_center_id', 'station_id', 'user_id'],
       },
       include: [
         { model: Station, attributes: ["id", "name"] },
         { model: ElectionCenter, attributes: ["id", "name"] },
+        {
+          model: User,
+          attributes: ["first_name", "second_name", "last_name"],
+        },
       ],
     });
 
@@ -64,35 +77,27 @@ exports.getTapes = async (req, res) => {
       return res.status(404).json({ message: "لا توجد أشرطة" });
     }
 
-    // نطبق دالة getImagePath على كل tape_imageurl
-    const tapesWithFullUrl = tapes.map(tape => {
-  const tapeJson = tape.toJSON();
-  return {
-    ...tapeJson,
-    tape_imageurl: getImagePath(tapeJson.tape_image, "tapes"),
-  };
-});
-
-
-    res.json({ data: tapesWithFullUrl });
+    const formatted = tapes.map(formatTape);
+    res.json({ data: formatted });
   } catch (err) {
     console.error("خطأ في جلب الأشرطة:", err);
     res.status(500).json({ message: "فشل في جلب الأشرطة", error: err.message });
   }
 };
 
-
 exports.getTapeById = async (req, res) => {
   try {
     const tape = await Tapes.findByPk(req.params.id, {
-      attributes : {
-        exclude: ['election_center_id' , 'station_id']
-
+      attributes: {
+        exclude: ['election_center_id', 'station_id', 'user_id'],
       },
-
       include: [
         { model: Station, attributes: ["id", "name"] },
         { model: ElectionCenter, attributes: ["id", "name"] },
+        {
+          model: User,
+          attributes: ["first_name", "second_name", "last_name"],
+        },
       ],
     });
 
@@ -100,10 +105,8 @@ exports.getTapeById = async (req, res) => {
       return res.status(404).json({ message: "الشريط غير موجود" });
     }
 
-    const tapeJson = tape.toJSON();
-    tapeJson.tape_image = getImagePath(tapeJson.tape_image, "tapes");
-
-    res.json({ data: tapeJson });
+   
+    res.json({ data: formatTape(tape) });
   } catch (err) {
     console.error("خطأ في جلب الشريط حسب المعرّف:", err);
     res.status(500).json({ message: "فشل في جلب الشريط", error: err.message });
@@ -114,29 +117,35 @@ exports.getTapeById = async (req, res) => {
 exports.getTapesByCenterId = async (req, res) => {
   try {
     const { id } = req.params;
-
     const tapes = await Tapes.findAll({
       where: { election_center_id: id },
-        attributes : {
-        exclude: ['election_center_id' , 'station_id']
+      attributes: {
+        exclude: ['election_center_id', 'station_id', 'user_id'],
+      },
+      include: [
+        {
 
-      }
-      
+          model: User,
+          attributes: ["first_name", "second_name", "last_name"],
+        },
+        {
+          model: Station,
+          attributes: ["id", "name"],
+
+        },
+        {
+          model: ElectionCenter,
+          attributes: ["id", "name"],
+          },
+      ],
     });
 
     if (!tapes.length) {
       return res.status(404).json({ message: "لا توجد أشرطة في هذا المركز الانتخابي" });
     }
+    // res.json({ data: formatTape(tapes) });
+    res.json({ data: tapes.map(formatTape) });
 
-    const tapesWithFullUrl = tapes.map(tape => {
-      const tapeJson = tape.toJSON();
-      return {
-        ...tapeJson,
-        tape_image: getImagePath(tapeJson.tape_image, "tapes"),
-      };
-    });
-
-    res.json({ data: tapesWithFullUrl });
   } catch (err) {
     console.error("خطأ في جلب الأشرطة حسب المركز:", err);
     res.status(500).json({ message: "فشل في جلب الأشرطة حسب المركز", error: err.message });
@@ -150,28 +159,38 @@ exports.getTapesByStationId = async (req, res) => {
     const tapes = await Tapes.findAll({
       where: { station_id: id },
       attributes: {
-        exclude: ['election_center_id', 'station_id'],
+        exclude: ['election_center_id', 'station_id', 'user_id'],
       },
+      include: [
+        {
+          model: User,
+          attributes: ["first_name", "second_name", "last_name"],
+        },
+        {
+          model: Station,
+          attributes: ["id", "name"],
+          },
+          {
+            model: ElectionCenter,
+            attributes: ["id", "name"],
+            },
+            
+      ],
     });
 
     if (!tapes.length) {
       return res.status(404).json({ message: "لا توجد أشرطة في هذه المحطة" });
     }
 
-    const tapesWithFullUrl = tapes.map(tape => {
-      const tapeJson = tape.toJSON();
-      return {
-        ...tapeJson,
-        tape_image: tapeJson.tape_image ? getImagePath(tapeJson.tape_image, "tapes") : null,
-      };
-    });
+  
 
-    res.json({ data: tapesWithFullUrl });
+    res.json({ data: tapes.map(formatTape) });
   } catch (err) {
     console.error("خطأ في جلب الأشرطة حسب المحطة:", err);
     res.status(500).json({ message: "فشل في جلب الأشرطة حسب المحطة", error: err.message });
   }
 };
+
 
 exports.updateTape = async (req, res) => {
   try {
@@ -196,11 +215,11 @@ exports.updateTape = async (req, res) => {
     };
 
     await tape.update(updateData);
-    await addLog({
-      fullname: req.user?.full_name || "مستخدم مجهول",
-      action: "تعديل",
-      message: `تم تعديل الشريط (ID: ${tape.id})`,
-    });
+    // await addLog({
+    //   fullname: req.user?.full_name || "مستخدم مجهول",
+    //   action: "تعديل",
+    //   message: `تم تعديل الشريط (ID: ${tape.id})`,
+    // });
 
     res.json({ data: tape });
   } catch (err) {
@@ -219,11 +238,11 @@ exports.deleteTape = async (req, res) => {
       return res.status(404).json({ message: "الشريط غير موجود" });
     }
 
-    await addLog({
-      fullname: req.user?.full_name || "مستخدم مجهول",
-      action: "حذف",
-      message: `تم حذف الشريط (ID: ${req.params.id})`,
-    });
+    // await addLog({
+    //   fullname: req.user?.full_name || "مستخدم مجهول",
+    //   action: "حذف",
+    //   message: `تم حذف الشريط (ID: ${req.params.id})`,
+    // });
 
     res.status(205).json({ message: "تم حذف الشريط بنجاح" });
   } catch (err) {
@@ -235,11 +254,11 @@ exports.deleteTape = async (req, res) => {
 exports.deleteAllTapes = async (req, res) => {
   try {
     await Tapes.destroy({ where: {}, truncate: true });
-    await addLog({
-      fullname: req.user?.full_name || "مستخدم مجهول",
-      action: "حذف الكل",
-      message: "تم حذف جميع الأشرطة من النظام",
-    });
+    // await addLog({
+    //   fullname: req.user?.full_name || "مستخدم مجهول",
+    //   action: "حذف الكل",
+    //   message: "تم حذف جميع الأشرطة من النظام",
+    // });
 
     res.status(205).json({ message: "تم حذف جميع الأشرطة" });
   } catch (err) {

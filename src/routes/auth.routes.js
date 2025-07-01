@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-
 const {
   register,
   login,
@@ -52,7 +51,7 @@ router.put(
 );
 
 
-router.use(authorize("system_admin"));
+router.use(authorize(["system_admin" , "owner"]));
 
 router.post(
   "/users",

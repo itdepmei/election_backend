@@ -1,13 +1,13 @@
-// utils/logger.js or services/logger.js
-const Log = require('../models/log.model'); // adjust the path as needed
+const Log = require('../models/log.model'); // adjust the path if needed
 
-async function addLog({ fullname, action, message }) {
+async function addLog({ first_name, second_name = '', last_name, action, message }) {
   try {
+    const fullname = [first_name, second_name, last_name].filter(Boolean).join(' ').trim();
+    
     const log = await Log.create({ fullname, action, message });
     return log;
   } catch (err) {
     console.error('Failed to add log:', err);
-    // You can choose to throw the error or just swallow it depending on your use case
     throw err;
   }
 }

@@ -7,7 +7,7 @@ const {
   stripPassword,
 } = require("../utils/stripPassword");
 const ElectionCenter = require("../models/ElectionCenter.model");
-const {addLog} = require('../utils/Logger')
+const { addLog } = require("../utils/Logger");
 
 // REGISTER
 exports.register = [
@@ -35,7 +35,7 @@ exports.register = [
         has_updated_card,
         has_voted,
         election_center_id,
-        role
+        role,
       } = req.body;
       const profileImageFile =
         req.files && req.files["profile_image"]
@@ -97,11 +97,11 @@ exports.register = [
         { expiresIn: "7d" }
       );
 
-        await addLog({
-        fullname: `${newUser.first_name} ${newUser.last_name}`,
-        action: 'اضافة',
-        message: `تم تسجيل مستخدم جديد برقم الهاتف: ${newUser.phone_number}`,
-      });
+      // await addLog({
+      //   fullname: `${newUser.first_name} ${newUser.last_name}`,
+      //   action: "اضافة",
+      //   message: `تم تسجيل مستخدم جديد برقم الهاتف: ${newUser.phone_number}`,
+      // });
 
       res.cookie("token", token, {
         httpOnly: true,
@@ -122,9 +122,6 @@ exports.register = [
 ];
 
 exports.login = [
-  body("phone_number")
-    .isMobilePhone("any")
-    .withMessage("Invalid phone number format"),
   body("password").notEmpty().withMessage("Password is required"),
 
   async (req, res) => {
@@ -151,11 +148,14 @@ exports.login = [
         { expiresIn: "7d" }
       );
 
-      await addLog({
-        fullname: user.first_name + " " + user.last_name,
-        action: 'اضافة',
-        message: `تم تسجيل دخول المستخدم برقم الهاتف: ${user.phone_number}`,
-      });
+      // await addLog({
+      //   first_name: req.user?.first_name || "",
+      //   second_name: req.user?.second_name || "",
+      //   last_name: req.user?.last_name || "",
+
+      //   action: "اضافة",
+      //   message: `تم تسجيل دخول المستخدم برقم الهاتف: ${user.phone_number}`,
+      // });
 
       res.cookie("token", token, {
         httpOnly: true,
@@ -166,7 +166,9 @@ exports.login = [
 
       res.status(200).json({ data: stripPassword(user), token: token });
     } catch (err) {
-      res.status(500).json({ message: "فشل في تسجيل الدخول", error: err.message });
+      res
+        .status(500)
+        .json({ message: "فشل في تسجيل الدخول", error: err.message });
     }
   },
 ];
@@ -178,15 +180,14 @@ exports.logout = (req, res) => {
     sameSite: "lax",
   });
 
-  const fullname = req.user ? `${req.user.first_name} ${req.user.last_name}` : "مستخدم مجهول";
-
   addLog({
-    fullname,
-    action: 'تسجيل خروج',
+    first_name: req.user?.first_name || "",
+    second_name: req.user?.second_name || "",
+    last_name: req.user?.last_name || "",
+    action: "تسجيل خروج",
     message: `تم تسجيل خروج المستخدم`,
   });
 
-  
   res.json({ message: "تم تسجيل الخروج بنجاح" });
 };
 
@@ -265,11 +266,13 @@ exports.updateMe = async (req, res) => {
 
     const fullUser = await User.findByPk(user.id);
     await addLog({
-      fullname: `${user.first_name} ${user.last_name}`,
-      action: 'تحديث',
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+
+      action: "تحديث",
       message: `تم تحديث بيانات المستخدم : ${user.fullname}`,
     });
-
 
     const token = jwt.sign(
       {
@@ -283,7 +286,9 @@ exports.updateMe = async (req, res) => {
 
     res.status(200).json({ data: stripPassword(fullUser), token: token });
   } catch (err) {
-    res.status(500).json({ message: "فشل في تحديث المستخدم", error: err.message });
+    res
+      .status(500)
+      .json({ message: "فشل في تحديث المستخدم", error: err.message });
   }
 };
 
@@ -293,7 +298,9 @@ exports.changePassword = async (req, res) => {
     const { oldPassword, newPassword } = req.body;
 
     if (!oldPassword || !newPassword) {
-      return res.status(400).json({ message: "يجب ادخال كلمة السر القديمة والجديدة" });
+      return res
+        .status(400)
+        .json({ message: "يجب ادخال كلمة السر القديمة والجديدة" });
     }
 
     const isMatch = await bcrypt.compare(oldPassword, user.password_hash);
@@ -310,8 +317,11 @@ exports.changePassword = async (req, res) => {
       { expiresIn: "7d" }
     );
     await addLog({
-      fullname: `${user.first_name} ${user.last_name}`,
-      action: 'تعديل',
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+
+      action: "تعديل",
       message: `تم تغيير كلمة مرور المستخدم : ${user.fullname}`,
     });
 

@@ -11,8 +11,9 @@ router.post('/', upload.fields([
 ]), DistrictManager.addDistrictManager);
 
 router.get('/' , DistrictManager.getAllDistrictManagers)
+router.get('/:id' , DistrictManager.GetDistrictManagersbyId)
 
-router.put('/', upload.fields([
+router.put('/:id', upload.fields([
   { name: 'profile_image' },
   { name: 'identity_image' },
   { name: 'voting_card_image' }

@@ -90,6 +90,14 @@ subdistrict_id :{
     allowNull: true,
     defaultValue: false,
   },
+  campaign_id :{
+    type: DataTypes.INTEGER,
+    allowNull:true,
+    references:{
+      model: 'campaigns',
+      key: 'id',
+    }
+  },
   registration_type: {
     type: DataTypes.ENUM('self_registered', 'admin_added'),
     defaultValue: 'self_registered',
@@ -102,7 +110,8 @@ subdistrict_id :{
       'center_manager',
       'district_manager',
       'finance_auditor',
-      'system_admin'
+      'system_admin', 
+      "owner"
     ),
     allowNull: false,
     defaultValue: 'voter',

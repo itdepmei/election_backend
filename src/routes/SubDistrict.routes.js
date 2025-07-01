@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const SubDistrictController = require('../controllers/SubDistrict.controller');
+const {authenticate , authorizeExcept} = require('../middlewares/auth.middleware');
 
 
-router.post('/', SubDistrictController.createSubdistricts);
 router.get('/', SubDistrictController.getAllSubdistricts );
+router.use(authenticate);
+router.use(authorizeExcept('voter'))
+router.post('/', SubDistrictController.createSubdistricts);
 router.get('/:id', SubDistrictController.getSubdistrictById);
 router.put('/:id', SubDistrictController.updateSubdistrict);
 router.delete('/:id', SubDistrictController.deleteSubdistrict);

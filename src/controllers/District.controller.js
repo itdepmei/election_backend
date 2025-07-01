@@ -44,12 +44,10 @@ exports.createDistricts = async (req, res) => {
     );
 
     if (filteredRecords.length === 0) {
-      return res
-        .status(409)
-        .json({
-          message: "جميع الأسماء المدخلة موجودة مسبقًا",
-          duplicates: existingNames,
-        });
+      return res.status(409).json({
+        message: "جميع الأسماء المدخلة موجودة مسبقًا",
+        duplicates: existingNames,
+      });
     }
 
     const newDistricts = await District.bulkCreate(filteredRecords);
@@ -143,7 +141,6 @@ exports.getDistrictById = async (req, res) => {
     delete obj.Users;
 
     res.json({ data: obj });
-   
   } catch (err) {
     console.error("خطأ أثناء جلب القضاء:", err);
     res.status(500).json({ message: "فشل في جلب القضاء", error: err.message });
@@ -174,8 +171,10 @@ exports.updateDistrict = async (req, res) => {
     }
 
     await district.save();
-     await addLog({
-      fullname: req.user?.full_name || "مستخدم مجهول",
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
       action: "تعديل",
       message: `تم تعديل القضاء: ${district.name}`,
     });
@@ -198,8 +197,11 @@ exports.deleteDistrict = async (req, res) => {
     }
     await district.destroy();
     res.json({ message: "تم حذف القضاء بنجاح" });
-     await addLog({
-      fullname: req.user?.full_name || "مستخدم مجهول",
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+
       action: "حذف",
       message: `تم حذف القضاء: ${district.name}`,
     });
@@ -214,11 +216,13 @@ exports.deleteAllDistricts = async (req, res) => {
     await District.destroy({ truncate: true, cascade: true });
     res.json({ message: "تم حذف جميع الأقضية بنجاح" });
     await addLog({
-  fullname: req.user?.full_name || "مستخدم مجهول",
-  action: "حذف الكل",
-  message: `تم حذف جميع الأقضية`,
-});
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
 
+      action: "حذف الكل",
+      message: `تم حذف جميع الأقضية`,
+    });
   } catch (err) {
     res
       .status(500)

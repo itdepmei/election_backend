@@ -1,7 +1,5 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
-const ElectionCenter = require("./ElectionCenter.model");
-const Station = require("./Station.model");
 
 const Tapes = sequelize.define("Tapes", {
   election_center_id: {
@@ -31,9 +29,17 @@ const Tapes = sequelize.define("Tapes", {
     allowNull: true,
   },
   status : {
-    type: DataTypes.ENUM('accepted', 'denied' , 'bending'),
-    defaultValue: 'bending'
+    type: DataTypes.ENUM('مقبول', 'مرفوض' , 'قيد المراجعة'),
+    defaultValue: 'قيد المراجعة'
 
+  },
+  added_by : {
+    type: DataTypes.INTEGER ,
+    allowNull:true,
+    references: {
+      model: "users",
+      key: "id",
+      },
   }
 } , {
   tableName: 'Tapes',

@@ -5,6 +5,8 @@ const upload = require('../config/multer')
 
 
 router.get('/', Coordinator.getAllCoordinators);
+router.get('/:id'  , Coordinator.getCoordinatorById)
+
 router.post('/', upload.fields([
   { name: 'profile_image' },
   { name: 'identity_image' },
