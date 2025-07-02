@@ -55,11 +55,11 @@ exports.createDistricts = async (req, res) => {
     res.status(201).json({
       data: newDistricts,
     });
-    await addLog({
-      fullname: req.user?.full_name || "مستخدم مجهول",
-      action: "إضافة",
-      message: `تم إنشاء ${newDistricts.length} قضاء جديد`,
-    });
+    // await addLog({
+    //   fullname: req.user?.full_name || "مستخدم مجهول",
+    //   action: "إضافة",
+    //   message: `تم إنشاء ${newDistricts.length} قضاء جديد`,
+    // });
   } catch (err) {
     res
       .status(500)
@@ -171,13 +171,13 @@ exports.updateDistrict = async (req, res) => {
     }
 
     await district.save();
-    await addLog({
-      first_name: req.user?.first_name || "",
-      second_name: req.user?.second_name || "",
-      last_name: req.user?.last_name || "",
-      action: "تعديل",
-      message: `تم تعديل القضاء: ${district.name}`,
-    });
+    // await addLog({
+    //   first_name: req.user?.first_name || "",
+    //   second_name: req.user?.second_name || "",
+    //   last_name: req.user?.last_name || "",
+    //   action: "تعديل",
+    //   message: `تم تعديل القضاء: ${district.name}`,
+    // });
 
     res.json({ data: district });
   } catch (err) {
@@ -215,14 +215,14 @@ exports.deleteAllDistricts = async (req, res) => {
   try {
     await District.destroy({ truncate: true, cascade: true });
     res.json({ message: "تم حذف جميع الأقضية بنجاح" });
-    await addLog({
-      first_name: req.user?.first_name || "",
-      second_name: req.user?.second_name || "",
-      last_name: req.user?.last_name || "",
+    // await addLog({
+    //   first_name: req.user?.first_name || "",
+    //   second_name: req.user?.second_name || "",
+    //   last_name: req.user?.last_name || "",
 
-      action: "حذف الكل",
-      message: `تم حذف جميع الأقضية`,
-    });
+    //   action: "حذف الكل",
+    //   message: `تم حذف جميع الأقضية`,
+    // });
   } catch (err) {
     res
       .status(500)

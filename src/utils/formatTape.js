@@ -19,6 +19,9 @@ function formatTape(tapeInstance) {
       
     Station: tape.Station || null,
     ElectionCenter: tape.ElectionCenter || null,
+    createdAt : tape.createdAt,
+    updatedAt : tape.updatedAt
+    
   };
 
   return formatted;

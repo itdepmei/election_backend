@@ -13,6 +13,7 @@ const CoordinatorElectionCenter = require("./CoordinatorElectionCenter");
 const DistrictManagerElectionCenter = require("./DistrictManagerElectionCenter");
 const Campaign = require("./Campain.model");
 const Log = require("./log.model");
+const FinanceCapital = require("./FinanceCapital.model");
 
 const initModels = async () => {
   try {
@@ -128,8 +129,6 @@ const initModels = async () => {
 
     // ========== علاقة N:N بين Coordinator و ElectionCenter ==========
 
-
-
     // Station
     Station.belongsTo(ElectionCenter, {
       foreignKey: "election_center_id",
@@ -156,17 +155,17 @@ const initModels = async () => {
       onDelete: "SET NULL",
     });
 
-    Tapes.belongsTo(User , {foreignKey: "added_by", onDelete: "SET NULL"});
+    Tapes.belongsTo(User, { foreignKey: "added_by", onDelete: "SET NULL" });
 
-    User.hasMany(Tapes , {foreignKey: "added_by", onDelete: "SET NULL"});
-        Campaign.belongsTo(User, {
-      foreignKey: 'created_by',
-      onDelete: 'CASCADE',
+    User.hasMany(Tapes, { foreignKey: "added_by", onDelete: "SET NULL" });
+    Campaign.belongsTo(User, {
+      foreignKey: "created_by",
+      onDelete: "CASCADE",
     });
 
     // campaign has many users
     Campaign.hasMany(User, {
-      foreignKey: 'campaign_id',
+      foreignKey: "campaign_id",
     });
 
     //
@@ -177,18 +176,18 @@ const initModels = async () => {
     User.hasMany(Coordinator, { foreignKey: "user_id", onDelete: "CASCADE" });
 
     Coordinator.belongsToMany(ElectionCenter, {
-  through: CoordinatorElectionCenter,
-  foreignKey: "coordinator_id",
-  otherKey: "election_center_id",
-  onDelete: "CASCADE",
-});
+      through: CoordinatorElectionCenter,
+      foreignKey: "coordinator_id",
+      otherKey: "election_center_id",
+      onDelete: "CASCADE",
+    });
 
-ElectionCenter.belongsToMany(Coordinator, {
-  through: CoordinatorElectionCenter,
-  foreignKey: "election_center_id",
-  otherKey: "coordinator_id",
-  onDelete: "CASCADE",
-});
+    ElectionCenter.belongsToMany(Coordinator, {
+      through: CoordinatorElectionCenter,
+      foreignKey: "election_center_id",
+      otherKey: "coordinator_id",
+      onDelete: "CASCADE",
+    });
 
     DistrictManager.belongsTo(User, {
       foreignKey: "user_id",
@@ -196,17 +195,23 @@ ElectionCenter.belongsToMany(Coordinator, {
     });
 
     DistrictManager.belongsToMany(ElectionCenter, {
-  through: DistrictManagerElectionCenter,
-  foreignKey: "district_manager_id",
-  otherKey: "election_center_id"
-});
-ElectionCenter.belongsToMany(DistrictManager, {
-  through: DistrictManagerElectionCenter,
-  foreignKey: "election_center_id",
-  otherKey: "district_manager_id"
-});
+      through: DistrictManagerElectionCenter,
+      foreignKey: "district_manager_id",
+      otherKey: "election_center_id",
+    });
+    ElectionCenter.belongsToMany(DistrictManager, {
+      through: DistrictManagerElectionCenter,
+      foreignKey: "election_center_id",
+      otherKey: "district_manager_id",
+    });
+    ///
+    FinanceCapital.belongsTo(User, {
+      foreignKey: "added_by",
+    });
 
-
+    User.hasMany(FinanceCapital, {
+      foreignKey: "added_by",
+    });
 
     await sequelize.sync();
     console.log("✅ Models synced");
