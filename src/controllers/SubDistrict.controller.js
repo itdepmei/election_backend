@@ -61,31 +61,37 @@ exports.createSubdistricts = async (req, res) => {
 exports.getAllSubdistricts = async (req, res) => {
   try {
     const subdistricts = await Subdistrict.findAll({
-      attributes: [
-        "id",
-        "name",
-        [sequelize.col("Governorate.name"), "governorate"],
-        [sequelize.col("District.name"), "district"],
-      ],
+      attributes: ["id", "name"],
       include: [
-        { model: District, attributes: [] },
-        { model: Governorate, attributes: [] },
+        { model: District, attributes: ["id", "name"] },
+        { model: Governorate, attributes: ["id", "name"] },
         { model: ElectionCenter, attributes: ["id"] },
         { model: User, attributes: ["id", "confirmed_voting"] },
       ],
-      group: ["Subdistrict.id", "Governorate.name", "District.name"],
     });
 
     const data = subdistricts.map((sub) => {
       const obj = sub.get({ plain: true });
+
+      obj.district = obj.District
+        ? { id: obj.District.id, name: obj.District.name }
+        : null;
+
+      obj.governorate = obj.Governorate
+        ? { id: obj.Governorate.id, name: obj.Governorate.name }
+        : null;
+
       obj.election_centers_count = obj.ElectionCenters?.length || 0;
       obj.users_count = obj.Users?.length || 0;
       obj.confirmed_voting_users_count = obj.Users
         ? obj.Users.filter((user) => user.confirmed_voting === true).length
         : 0;
 
+      delete obj.District;
+      delete obj.Governorate;
       delete obj.ElectionCenters;
       delete obj.Users;
+
       return obj;
     });
 
@@ -97,22 +103,16 @@ exports.getAllSubdistricts = async (req, res) => {
     });
   }
 };
-
 exports.getSubdistrictById = async (req, res) => {
   try {
     const { id } = req.params;
 
     const subdistrict = await Subdistrict.findOne({
       where: { id },
-      attributes: [
-        "id",
-        "name",
-        [sequelize.col("District.name"), "district_name"],
-        [sequelize.col("Governorate.name"), "governorate_name"],
-      ],
+      attributes: ["id", "name"],
       include: [
-        { model: District, attributes: [] },
-        { model: Governorate, attributes: [] },
+        { model: District, attributes: ["id", "name"] },
+        { model: Governorate, attributes: ["id", "name"] },
         { model: ElectionCenter, attributes: ["id"] },
         { model: User, attributes: ["id", "confirmed_voting"] },
       ],
@@ -124,12 +124,22 @@ exports.getSubdistrictById = async (req, res) => {
 
     const plainSub = subdistrict.get({ plain: true });
 
+    plainSub.district = plainSub.District
+      ? { id: plainSub.District.id, name: plainSub.District.name }
+      : null;
+
+    plainSub.governorate = plainSub.Governorate
+      ? { id: plainSub.Governorate.id, name: plainSub.Governorate.name }
+      : null;
+
     plainSub.election_centers_count = plainSub.ElectionCenters?.length || 0;
     plainSub.users_count = plainSub.Users?.length || 0;
     plainSub.confirmed_voting_users_count = plainSub.Users
       ? plainSub.Users.filter((user) => user.confirmed_voting === true).length
       : 0;
 
+    delete plainSub.District;
+    delete plainSub.Governorate;
     delete plainSub.ElectionCenters;
     delete plainSub.Users;
 
@@ -142,6 +152,55 @@ exports.getSubdistrictById = async (req, res) => {
     });
   }
 };
+
+exports.getSubdistrictsByDistrictId = async (req, res) => {
+  const {id } = req.params;
+  try {
+    const subdistricts = await Subdistrict.findAll({
+      where: { district_id: id },
+      attributes: ["id", "name"],
+      include: [
+        { model: District, attributes: ["id", "name"] },
+        { model: Governorate, attributes: ["id", "name"] },
+        { model: ElectionCenter, attributes: ["id"] },
+        { model: User, attributes: ["id", "confirmed_voting"] },
+      ],
+    });
+
+    const data = subdistricts.map((sub) => {
+      const obj = sub.get({ plain: true });
+
+      obj.district = obj.District
+        ? { id: obj.District.id, name: obj.District.name }
+        : null;
+
+      obj.governorate = obj.Governorate
+        ? { id: obj.Governorate.id, name: obj.Governorate.name }
+        : null;
+
+      obj.election_centers_count = obj.ElectionCenters?.length || 0;
+      obj.users_count = obj.Users?.length || 0;
+      obj.confirmed_voting_users_count = obj.Users
+        ? obj.Users.filter((user) => user.confirmed_voting === true).length
+        : 0;
+
+      delete obj.District;
+      delete obj.Governorate;
+      delete obj.ElectionCenters;
+      delete obj.Users;
+
+      return obj;
+    });
+
+    res.json({ data });
+  } catch (err) {
+    res.status(500).json({
+      message: "فشل في جلب قائمة النواحي",
+      error: err.message,
+    });
+  }
+};
+
 
 exports.updateSubdistrict = async (req, res) => {
   try {

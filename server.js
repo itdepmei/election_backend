@@ -19,6 +19,11 @@ const Coordinatorroutes = require('./src/routes/Coordinator.route')
 const Logroute = require('./src/routes/Log.route')
 const district_managerRoute = require('./src/routes/DistrictManager.route')
 const campaignRoute = require('./src/routes/Campaign.routes')
+const FinanceCapitalRoute = require('./src/routes/FinanceCapital.routes')
+const ExpenseRoute = require('./src/routes/Expense.routes')
+const PaymentRoute = require('./src/routes/Payment.route')
+
+//
 const app = express();
 // app.use(cors({
 //   origin: [
@@ -62,6 +67,9 @@ app.use("/api/coordinator", Coordinatorroutes);
 app.use("/api/log", Logroute);
 app.use('/api/district-manager' , district_managerRoute)
 app.use('/api/campaign' , campaignRoute)
+app.use('/api/finance-capital' , FinanceCapitalRoute)
+app.use('/api/expense' , ExpenseRoute)
+app.use('/api/payment' , PaymentRoute)
 
 
 app.use("/api/", authRoutes);

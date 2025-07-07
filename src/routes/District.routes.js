@@ -6,13 +6,16 @@ const {authenticate , authorizeExcept} = require('../middlewares/auth.middleware
 
 
 router.get('/', DistrictController.getAllDistricts);
-router.use(authenticate);
-router.use(authorizeExcept('voter'))
-router.post('/', DistrictController.createDistricts);
+router.get('/governorate/:id' , DistrictController.getDistrictByGovernateId)
 
+// router.use(authenticate);
+// router.use(authorizeExcept('voter'))
+router.post('/', DistrictController.createDistricts);
 router.get('/:id', DistrictController.getDistrictById);
 router.put('/:id', DistrictController.updateDistrict);
 router.delete('/:id', DistrictController.deleteDistrict);
 router.delete('/', DistrictController.deleteAllDistricts);
+
+
 
 module.exports = router;

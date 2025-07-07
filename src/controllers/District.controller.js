@@ -71,13 +71,9 @@ exports.createDistricts = async (req, res) => {
 exports.getAllDistricts = async (req, res) => {
   try {
     const districts = await District.findAll({
-      attributes: [
-        "id",
-        "name",
-        [sequelize.col("Governorate.name"), "governorate"],
-      ],
+      attributes: ["id", "name"],
       include: [
-        { model: Governorate, attributes: [] },
+        { model: Governorate, attributes: ["id", "name"] },
         { model: Subdistrict, attributes: ["id"] },
         { model: ElectionCenter, attributes: ["id"] },
         { model: User, attributes: ["id", "confirmed_voting"] },
@@ -86,15 +82,24 @@ exports.getAllDistricts = async (req, res) => {
 
     const data = districts.map((dist) => {
       const obj = dist.get({ plain: true });
+
+          obj.governorate = obj.Governorate
+      ? { id: obj.Governorate.id, name: obj.Governorate.name }
+      : null;
+
+
       obj.subdistricts_count = obj.Subdistricts?.length || 0;
       obj.election_centers_count = obj.ElectionCenters?.length || 0;
       obj.users_count = obj.Users?.length || 0;
       obj.confirmed_voting_users_count = obj.Users
         ? obj.Users.filter((user) => user.confirmed_voting === true).length
         : 0;
+
       delete obj.Subdistricts;
       delete obj.ElectionCenters;
       delete obj.Users;
+      delete obj.Governorate;
+
       return obj;
     });
 
@@ -104,6 +109,7 @@ exports.getAllDistricts = async (req, res) => {
   }
 };
 
+
 // جلب قضاء بواسطة ID
 exports.getDistrictById = async (req, res) => {
   try {
@@ -111,13 +117,9 @@ exports.getDistrictById = async (req, res) => {
 
     const district = await District.findOne({
       where: { id },
-      attributes: [
-        "id",
-        "name",
-        [sequelize.col("Governorate.name"), "governorate"],
-      ],
+      attributes: ["id", "name"],
       include: [
-        { model: Governorate, attributes: [] },
+        { model: Governorate, attributes: ["id", "name"] },
         { model: Subdistrict, attributes: ["id"] },
         { model: ElectionCenter, attributes: ["id"] },
         { model: User, attributes: ["id", "confirmed_voting"] },
@@ -129,6 +131,14 @@ exports.getDistrictById = async (req, res) => {
     }
 
     const obj = district.get({ plain: true });
+
+
+
+  
+        obj.governorate = obj.Governorate
+      ? { id: obj.Governorate.id, name: obj.Governorate.name }
+      : null;
+
     obj.subdistricts_count = obj.Subdistricts?.length || 0;
     obj.election_centers_count = obj.ElectionCenters?.length || 0;
     obj.users_count = obj.Users?.length || 0;
@@ -136,6 +146,7 @@ exports.getDistrictById = async (req, res) => {
       ? obj.Users.filter((user) => user.confirmed_voting === true).length
       : 0;
 
+    delete obj.Governorate;
     delete obj.Subdistricts;
     delete obj.ElectionCenters;
     delete obj.Users;
@@ -147,6 +158,57 @@ exports.getDistrictById = async (req, res) => {
   }
 };
 
+exports.getDistrictByGovernateId = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const districts = await District.findAll({
+      where: { governorate_id: id },
+      attributes: ["id", "name"],
+      include: [
+        { model: Governorate, attributes: ["id", "name"] },
+        { model: Subdistrict, attributes: ["id"] },
+        { model: ElectionCenter, attributes: ["id"] },
+        { model: User, attributes: ["id", "confirmed_voting"] },
+      ],
+    });
+
+
+    if (!districts) {
+      return res.status(404).json({ message: "القضاء غير موجود" });
+    }
+
+    const data = districts.map((dist) => {
+      const obj = dist.get({ plain: true });
+
+
+          obj.governorate = obj.Governorate
+      ? { id: obj.Governorate.id, name: obj.Governorate.name }
+      : null;
+
+      obj.subdistricts_count = obj.Subdistricts?.length || 0;
+      obj.election_centers_count = obj.ElectionCenters?.length || 0;
+      obj.users_count = obj.Users?.length || 0;
+      obj.confirmed_voting_users_count = obj.Users
+        ? obj.Users.filter((user) => user.confirmed_voting === true).length
+        : 0;
+
+      delete obj.Governorate
+
+      delete obj.Subdistricts;
+      delete obj.ElectionCenters;
+      delete obj.Users;
+
+      return obj;
+    });
+
+
+    res.json({ data: data });
+  } catch (err) {
+    console.error("خطأ أثناء جلب القضاء:", err);
+    res.status(500).json({ message: "فشل في جلب القضاء", error: err.message });
+  }
+};
 // تعديل قضاء
 exports.updateDistrict = async (req, res) => {
   try {
@@ -196,15 +258,10 @@ exports.deleteDistrict = async (req, res) => {
       return res.status(404).json({ message: "القضاء غير موجود" });
     }
     await district.destroy();
-    res.json({ message: "تم حذف القضاء بنجاح" });
-    await addLog({
-      first_name: req.user?.first_name || "",
-      second_name: req.user?.second_name || "",
-      last_name: req.user?.last_name || "",
 
-      action: "حذف",
-      message: `تم حذف القضاء: ${district.name}`,
-    });
+
+    res.status(205).json({ message: "تم حذف القضاء بنجاح" });
+    
   } catch (err) {
     res.status(500).json({ message: "فشل في حذف القضاء", error: err.message });
   }

@@ -14,6 +14,8 @@ const DistrictManagerElectionCenter = require("./DistrictManagerElectionCenter")
 const Campaign = require("./Campain.model");
 const Log = require("./log.model");
 const FinanceCapital = require("./FinanceCapital.model");
+const Expense = require("./Expense.model");
+const Payment = require("./Payment.model");
 
 const initModels = async () => {
   try {
@@ -204,7 +206,16 @@ const initModels = async () => {
       foreignKey: "election_center_id",
       otherKey: "district_manager_id",
     });
-    ///
+
+
+
+
+
+
+
+    /// finance
+
+
     FinanceCapital.belongsTo(User, {
       foreignKey: "added_by",
     });
@@ -213,6 +224,36 @@ const initModels = async () => {
       foreignKey: "added_by",
     });
 
+    Expense.belongsTo(User, {
+      foreignKey: "added_by",
+    });
+
+    User.hasMany(Expense, {
+      foreignKey: "added_by",
+    });
+
+
+    User.hasMany(Payment, { foreignKey: "user_id" });
+    User.hasMany(Payment, { foreignKey: "added_by", as: "AddedPayments" });
+
+    Payment.belongsTo(User, { foreignKey: "user_id" });
+    Payment.belongsTo(User, { foreignKey: "added_by", as: "AddedBy" });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    ////
     await sequelize.sync();
     console.log("✅ Models synced");
   } catch (err) {
@@ -232,4 +273,5 @@ module.exports = {
   DistrictManager,
   Station,
   Tapes,
+  
 };

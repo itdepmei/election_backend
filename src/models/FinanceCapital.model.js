@@ -2,8 +2,12 @@ const sequelize = require('../config/database');
 const { DataTypes } = require('sequelize');
 
 const FinanceCapital = sequelize.define("FinancialCapital" , {
-    ammount : {
+    amount : {
         type: DataTypes.INTEGER,
+        allowNull:true
+    },
+    title : {
+        type :DataTypes.STRING,
         allowNull:true
     },
     description : {

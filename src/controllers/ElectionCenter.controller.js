@@ -5,8 +5,6 @@ const Governorate = require('../models/Governate.model');
 const District = require('../models/District.model');
 const Subdistrict = require('../models/Subdistrict.model');
 
-const { fn, col, literal } = require('sequelize');
-
 exports.createElectionCenters = async (req, res) => {
   try {
     const input = req.body;
@@ -82,45 +80,70 @@ exports.getElectionCenters = async (req, res) => {
         'supply_name',
         'registration_center_code',
         'registration_center_name',
-        [col('Governorate.name'), 'governorate_name'],
-        [col('District.name'), 'district_name'],
-        [col('Subdistrict.name'), 'subdistrict_name'],
-        [col('center_manager.first_name'), 'center_manager_first_name'],
-        [col('center_manager.last_name'), 'center_manager_last_name'],
       ],
       include: [
         {
           model: Station,
-          attributes: ['id'], // we'll count them in JS
+          attributes: ['id'], // used for counting
           required: false,
         },
         {
           model: User,
-          attributes: ['id'],
+          attributes: ['id'], // users in center
           required: false,
         },
-        { model: Governorate, attributes: [] },
-        { model: District, attributes: [] },
-        { model: Subdistrict, attributes: [] },
-        { model: User, as: 'center_manager', attributes: [] },
+        {
+          model: Governorate,
+          attributes: ['id', 'name'],
+        },
+        {
+          model: District,
+          attributes: ['id', 'name'],
+        },
+        {
+          model: Subdistrict,
+          attributes: ['id', 'name'],
+        },
+        {
+          model: User,
+          as: 'center_manager',
+          attributes: ['first_name', 'last_name'],
+        },
       ],
     });
 
     const data = centers.map((center) => {
       const plain = center.get({ plain: true });
 
-      plain.stations_count = center.Stations?.length || 0;
-      plain.users_count = center.Users?.length || 0;
+      plain.governorate = plain.Governorate
+        ? { id: plain.Governorate.id, name: plain.Governorate.name }
+        : null;
 
+      plain.district = plain.District
+        ? { id: plain.District.id, name: plain.District.name }
+        : null;
+
+      plain.subdistrict = plain.Subdistrict
+        ? { id: plain.Subdistrict.id, name: plain.Subdistrict.name }
+        : null;
+
+      // ✅ Count related records
+      plain.stations_count = plain.Stations?.length || 0;
+      plain.users_count = plain.Users?.length || 0;
+
+      // ✅ Combine manager name
       plain.center_manager_name =
-        plain.center_manager_first_name && plain.center_manager_last_name
-          ? `${plain.center_manager_first_name} ${plain.center_manager_last_name}`
+        plain.center_manager?.first_name && plain.center_manager?.last_name
+          ? `${plain.center_manager.first_name} ${plain.center_manager.last_name}`
           : null;
 
-      delete plain.center_manager_first_name;
-      delete plain.center_manager_last_name;
+      // 🚮 Clean up
+      delete plain.Governorate;
+      delete plain.District;
+      delete plain.Subdistrict;
       delete plain.Stations;
       delete plain.Users;
+      delete plain.center_manager;
 
       return plain;
     });
@@ -131,7 +154,6 @@ exports.getElectionCenters = async (req, res) => {
     res.status(500).json({ message: "فشل في جلب مراكز الاقتراع", error: err.message });
   }
 };
-
 
 
 exports.getElectionCenterById = async (req, res) => {
@@ -149,47 +171,74 @@ exports.getElectionCenterById = async (req, res) => {
         'supply_name',
         'registration_center_code',
         'registration_center_name',
-        [col('Governorate.name'), 'governorate_name'],
-        [col('District.name'), 'district_name'],
-        [col('Subdistrict.name'), 'subdistrict_name'],
-        [col('center_manager.first_name'), 'center_manager_first_name'],
-        [col('center_manager.last_name'), 'center_manager_last_name'],
       ],
       include: [
         {
           model: Station,
-          attributes: ['id'], // Needed for count
+          attributes: ['id'], // for counting
           required: false,
         },
         {
           model: User,
-          attributes: ['id'], // Needed for count
+          attributes: ['id'], // for counting
           required: false,
         },
-        { model: Governorate, attributes: [] },
-        { model: District, attributes: [] },
-        { model: Subdistrict, attributes: [] },
-        { model: User, as: 'center_manager', attributes: [] }
-      ]
+        {
+          model: Governorate,
+          attributes: ['id', 'name'],
+        },
+        {
+          model: District,
+          attributes: ['id', 'name'],
+        },
+        {
+          model: Subdistrict,
+          attributes: ['id', 'name'],
+        },
+        {
+          model: User,
+          as: 'center_manager',
+          attributes: ['first_name', 'last_name'],
+        },
+      ],
     });
 
     if (!center) {
       return res.status(404).json({
-        message: `لم يتم العثور على مركز الاقتراع بالمعرف ${id}`
+        message: `لم يتم العثور على مركز الاقتراع بالمعرف ${id}`,
       });
     }
 
     const result = center.get({ plain: true });
 
-    result.stations_count = center.Stations?.length || 0;
-    result.users_count = center.Users?.length || 0;
-
-    result.center_manager_name = result.center_manager_first_name && result.center_manager_last_name
-      ? `${result.center_manager_first_name} ${result.center_manager_last_name}`
+    // ✅ Add nested region info
+    result.governorate = result.Governorate
+      ? { id: result.Governorate.id, name: result.Governorate.name }
       : null;
 
-    delete result.center_manager_first_name;
-    delete result.center_manager_last_name;
+    result.district = result.District
+      ? { id: result.District.id, name: result.District.name }
+      : null;
+
+    result.subdistrict = result.Subdistrict
+      ? { id: result.Subdistrict.id, name: result.Subdistrict.name }
+      : null;
+
+    // ✅ Combine center manager name
+    result.center_manager_name =
+      result.center_manager?.first_name && result.center_manager?.last_name
+        ? `${result.center_manager.first_name} ${result.center_manager.last_name}`
+        : null;
+
+    // ✅ Count related records
+    result.stations_count = result.Stations?.length || 0;
+    result.users_count = result.Users?.length || 0;
+
+    // 🧹 Clean up
+    delete result.Governorate;
+    delete result.District;
+    delete result.Subdistrict;
+    delete result.center_manager;
     delete result.Stations;
     delete result.Users;
 
@@ -198,7 +247,7 @@ exports.getElectionCenterById = async (req, res) => {
     console.error("Error fetching election center by ID:", err);
     res.status(500).json({
       message: "فشل في جلب مركز الاقتراع",
-      error: err.message
+      error: err.message,
     });
   }
 };
