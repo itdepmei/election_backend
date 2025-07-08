@@ -5,12 +5,20 @@ const NotificationRecipient = sequelize.define("NotificationRecipient", {
   user_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+     references: {
+        model: "users",
+        key: "id",
+      },
   },
   notification_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+     references: {
+        model: "notifications",
+        key: "id",
+      },
   },
-  read: {
+  isRead: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },

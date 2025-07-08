@@ -1,14 +1,14 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
-const Notficiation = sequelize.define(
+const Notificiation = sequelize.define(
   "Notification",
   {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    description: {
+    message: {
       type: DataTypes.STRING,
       allowNull: true,
     },
@@ -31,8 +31,9 @@ const Notficiation = sequelize.define(
   },
   {
     tableName: "notifications",
-    timestamps: false,
+    timestamps: true,
   }
 );
 
-module.exports = Notficiation;
+module.exports = Notificiation;
+

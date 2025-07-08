@@ -21,7 +21,8 @@ const district_managerRoute = require('./src/routes/DistrictManager.route')
 const campaignRoute = require('./src/routes/Campaign.routes')
 const FinanceCapitalRoute = require('./src/routes/FinanceCapital.routes')
 const ExpenseRoute = require('./src/routes/Expense.routes')
-const PaymentRoute = require('./src/routes/Payment.route')
+const NotificationRoute = require('./src/routes/Notification.route')
+const BudgetRoute = require('./src/routes/Budget.routes')
 
 //
 const app = express();
@@ -69,7 +70,8 @@ app.use('/api/district-manager' , district_managerRoute)
 app.use('/api/campaign' , campaignRoute)
 app.use('/api/finance-capital' , FinanceCapitalRoute)
 app.use('/api/expense' , ExpenseRoute)
-app.use('/api/payment' , PaymentRoute)
+app.use('/api/notifications' , NotificationRoute)
+app.use('/api/budget' ,  BudgetRoute)
 
 
 app.use("/api/", authRoutes);

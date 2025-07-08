@@ -2,18 +2,44 @@ const FinanceCapital = require("../models/FinanceCapital.model");
 const User = require("../models/user.model");
 
 // 📥 Create
+const Budget = require("../models/Budget.model");
+
 exports.createCapital = async (req, res) => {
   try {
     const { amount, title, description } = req.body;
+    const campaignId = req.user.campaign_id;
 
+    // 1. أنشئ رأس المال
     const capital = await FinanceCapital.create({
       amount,
       description,
       title,
       added_by: req.user.id,
+      campaign_id: campaignId,
     });
 
-    res.status(201).json({ data: capital });
+    // 2. تحقق من وجود budget مرتبط بالحملة
+    let budget = await Budget.findOne({ where: { campaign_id: campaignId } });
+
+    if (!budget) {
+      // إذا لم يكن موجود، أنشئ واحد جديد
+      budget = await Budget.create({
+        campaign_id: campaignId,
+        total_capital: amount,
+        total_expenses: 0,
+        remaining_balance: amount,
+      });
+    } else {
+      // إذا موجود، حدّث رأس المال والرصيد المتبقي
+      budget.total_capital += amount;
+      budget.remaining_balance = budget.total_capital - budget.total_expenses;
+      await budget.save();
+    }
+
+    res.status(201).json({
+      message: "تمت إضافة رأس المال وتحديث الميزانية",
+      data: { capital },
+    });
   } catch (err) {
     console.error("خطأ في إضافة رأس المال:", err);
     res

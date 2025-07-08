@@ -15,7 +15,9 @@ const Campaign = require("./Campain.model");
 const Log = require("./log.model");
 const FinanceCapital = require("./FinanceCapital.model");
 const Expense = require("./Expense.model");
-const Payment = require("./Payment.model");
+const NotificationRecipient = require("./NotificationRecipient.model");
+const Notificiation = require("./Notification.model");
+const Budget = require("./Budget.model");
 
 const initModels = async () => {
   try {
@@ -144,17 +146,17 @@ const initModels = async () => {
     // Tapes
     Tapes.belongsTo(Station, {
       foreignKey: "station_id",
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
     });
-    Station.hasMany(Tapes, { foreignKey: "station_id", onDelete: "SET NULL" });
+    Station.hasMany(Tapes, { foreignKey: "station_id", onDelete: "CASCADE" });
 
     Tapes.belongsTo(ElectionCenter, {
       foreignKey: "election_center_id",
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
     });
     ElectionCenter.hasMany(Tapes, {
       foreignKey: "election_center_id",
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
     });
 
     Tapes.belongsTo(User, { foreignKey: "added_by", onDelete: "SET NULL" });
@@ -168,6 +170,8 @@ const initModels = async () => {
     // campaign has many users
     Campaign.hasMany(User, {
       foreignKey: "campaign_id",
+      onDelete: "CASCADE"
+
     });
 
     //
@@ -207,17 +211,11 @@ const initModels = async () => {
       otherKey: "district_manager_id",
     });
 
-
-
-
-
-
-
     /// finance
-
 
     FinanceCapital.belongsTo(User, {
       foreignKey: "added_by",
+      
     });
 
     User.hasMany(FinanceCapital, {
@@ -232,26 +230,25 @@ const initModels = async () => {
       foreignKey: "added_by",
     });
 
-
-    User.hasMany(Payment, { foreignKey: "user_id" });
-    User.hasMany(Payment, { foreignKey: "added_by", as: "AddedPayments" });
-
-    Payment.belongsTo(User, { foreignKey: "user_id" });
-    Payment.belongsTo(User, { foreignKey: "added_by", as: "AddedBy" });
+    Campaign.hasMany(FinanceCapital, { foreignKey: "campaign_id" });
+    Campaign.hasMany(Expense, { foreignKey: "campaign_id" });
+    Campaign.hasMany(Budget, { foreignKey: "campaign_id" });
 
 
 
+    /// notification
+    NotificationRecipient.belongsTo(Notificiation, {
+      foreignKey: "notification_id",
+      onDelete: "CASCADE",
+    });
+    Notificiation.hasMany(NotificationRecipient, {
+      foreignKey: "notification_id",
+      onDelete: "CASCADE",
+    });
 
-
-
-
-
-
-
-
-
-
-
+    NotificationRecipient.belongsTo(User, {
+      foreignKey: "user_id",
+    });
 
     ////
     await sequelize.sync();
@@ -273,5 +270,6 @@ module.exports = {
   DistrictManager,
   Station,
   Tapes,
-  
+  Notificiation,
+  NotificationRecipient,
 };

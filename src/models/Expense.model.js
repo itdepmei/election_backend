@@ -24,6 +24,15 @@ const Expense = sequelize.define(
         key: "id",
       },
     },
+    campaign_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'campaigns',
+      key: 'id',
+    },
+  },
+
   },
   {
     tableName: "expenses",

@@ -1,25 +1,46 @@
 const Expense = require('../models/Expense.model');
 const User = require('../models/user.model'); // if you want to join who added it
+const Budget = require("../models/Budget.model");
 
 exports.createExpense = async (req, res) => {
   try {
-    const { amount, description } = req.body;
+    const { title, amount, description } = req.body;
+    const campaignId = req.user.campaign_id;
+
+    const budget = await Budget.findOne({ where: { campaign_id: campaignId } });
+
+    if (!budget) {
+      return res.status(400).json({ message: "لا توجد ميزانية لهذه الحملة بعد." });
+    }
+
+    if (budget.remaining_balance < amount) {
+      return res.status(400).json({ message: "الرصيد المتاح لا يكفي لتسجيل هذا المصروف." });
+    }
 
     const expense = await Expense.create({
       amount,
       description,
       title,
-      added_by : req.user.id,
+      campaign_id: campaignId,
+      added_by: req.user.id,
     });
 
-    res.status(201).json({ data: expense });
+    budget.total_expenses += amount;
+    budget.remaining_balance = budget.total_capital - budget.total_expenses;
+    await budget.save();
+
+    res.status(201).json({
+      data: { expense, budget },
+    });
   } catch (err) {
     console.error("خطأ في إضافة المصروف:", err);
-    res.status(500).json({ message: "فشل في إضافة المصروف", error: err.message });
+    res
+      .status(500)
+      .json({ message: "فشل في إضافة المصروف", error: err.message });
   }
 };
 
-// 📃 Get All Expenses
+//  Get All Expenses
 exports.getAllExpenses = async (req, res) => {
   try {
     const records = await Expense.findAll({
@@ -51,7 +72,7 @@ exports.getAllExpenses = async (req, res) => {
   }
 };
 
-// 🔍 Get Expense by ID
+//  Get Expense by ID
 exports.getExpenseById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -85,30 +106,32 @@ exports.getExpenseById = async (req, res) => {
   }
 };
 
-// ✏️ Update Expense
+//  Update Expense
 exports.updateExpense = async (req, res) => {
   try {
     const { id } = req.params;
-    const { amount, description , title} = req.body;
+    const { amount, description, title } = req.body;
 
-    const [affected] = await Expense.update(
-      { amount, description , title },
-      { where: { id } }
-    );
+    const expense = await Expense.findByPk(id);
 
-    if (affected === 0) {
-      return res.status(404).json({ message: "المصروف غير موجود أو لم يتم التحديث" });
+    if (!expense) {
+      return res.status(404).json({ message: "المصروف غير موجود" });
     }
 
-    const updated = await Expense.findByPk(id);
-    res.json({ message: "تم التحديث بنجاح", data: updated });
+    const updatedExpense = await expense.update({
+      amount: amount !== undefined ? amount : expense.amount,
+      description: description !== undefined ? description : expense.description,
+      title: title !== undefined ? title : expense.title,
+    });
+
+    res.json({ message: "تم التحديث بنجاح", data: updatedExpense });
   } catch (err) {
     console.error("خطأ في التحديث:", err);
     res.status(500).json({ message: "فشل في تحديث المصروف", error: err.message });
   }
 };
 
-// ❌ Delete Expense
+
 exports.deleteExpense = async (req, res) => {
   try {
     const { id } = req.params;
