@@ -162,17 +162,16 @@ const initModels = async () => {
     Tapes.belongsTo(User, { foreignKey: "added_by", onDelete: "SET NULL" });
 
     User.hasMany(Tapes, { foreignKey: "added_by", onDelete: "SET NULL" });
-    Campaign.belongsTo(User, {
-      foreignKey: "created_by",
-      onDelete: "CASCADE",
-    });
+    User.belongsTo(Campaign, {
+  foreignKey: 'campaign_id',
+});
 
-    // campaign has many users
-    Campaign.hasMany(User, {
-      foreignKey: "campaign_id",
-      onDelete: "CASCADE"
+// Campaign has many users
+Campaign.hasMany(User, {
+  foreignKey: 'campaign_id',
+});
 
-    });
+    
 
     //
     Coordinator.belongsTo(User, {

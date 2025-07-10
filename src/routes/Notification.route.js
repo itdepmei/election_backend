@@ -11,6 +11,9 @@ router.post('/' , NotficiationController.createNotification);
 router.get('/all' , NotficiationController.getAllNotifications);
 router.get('/' , NotficiationController.getNotificationsByUserId)
 router.delete('/' , NotficiationController.deleteAllRecords)
+router.delete('/:notification_id' , NotficiationController.deleteRecord)
+
+
 
 
 module.exports = router;

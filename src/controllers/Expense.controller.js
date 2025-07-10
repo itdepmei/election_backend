@@ -136,13 +136,32 @@ exports.deleteExpense = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const deleted = await Expense.destroy({ where: { id } });
+    // 1. جلب المصروف أولًا
+    const expense = await Expense.findByPk(id);
 
-    if (!deleted) {
+    if (!expense) {
       return res.status(404).json({ message: "المصروف غير موجود" });
     }
 
-    res.json({ message: "تم حذف المصروف بنجاح" });
+    const campaignId = expense.campaign_id;
+    const amount = expense.amount;
+
+    await expense.destroy();
+
+    const budget = await Budget.findOne({ where: { campaign_id: campaignId } });
+
+    if (budget) {
+      budget.total_expenses -= amount;
+      budget.remaining_balance = budget.total_capital - budget.total_expenses;
+
+      
+      budget.total_expenses = Math.max(0, budget.total_expenses);
+      budget.remaining_balance = Math.max(0, budget.remaining_balance);
+
+      await budget.save();
+    }
+
+    res.json({ message: "تم حذف المصروف وتحديث الميزانية بنجاح" });
   } catch (err) {
     console.error("خطأ في الحذف:", err);
     res.status(500).json({ message: "فشل في حذف المصروف", error: err.message });

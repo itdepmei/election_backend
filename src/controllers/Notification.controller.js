@@ -128,6 +128,8 @@ exports.getNotificationsByUserId = async (req, res) => {
 };
 
 exports.deleteAllRecords = async (req, res) => {
+
+  
   try {
     // The `truncate: true` option removes all rows and resets auto-increment counters
     await NotificationRecipient.destroy({ where: {} });
@@ -140,5 +142,23 @@ exports.deleteAllRecords = async (req, res) => {
     res
       .status(500)
       .json({ message: "فشل في حذف جميع السجلات", error: err.message });
+  }
+};
+
+
+
+exports.deleteRecord = async (req, res) => {
+
+  const {notification_id} = req.params
+  try {
+    await NotificationRecipient.destroy({ where: {notification_id : notification_id} });
+    await Notification.destroy({ where: { id:notification_id} });
+
+    res.json({ message: "تم حذف  الاشعار بنجاح " });
+  } catch (err) {
+    console.error("خطأ في حذف الاشعار:", err);
+    res
+      .status(500)
+      .json({ message: "فشل في حذف جميع السجل", error: err.message });
   }
 };

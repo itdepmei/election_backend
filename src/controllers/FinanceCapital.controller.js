@@ -9,6 +9,14 @@ exports.createCapital = async (req, res) => {
     const { amount, title, description } = req.body;
     const campaignId = req.user.campaign_id;
 
+
+    if(!campaignId) {
+       res
+      .status(400)
+      .json({ message: "لا تنتمي لحملة", error: err.message });
+
+    }
+
     // 1. أنشئ رأس المال
     const capital = await FinanceCapital.create({
       amount,
@@ -17,6 +25,8 @@ exports.createCapital = async (req, res) => {
       added_by: req.user.id,
       campaign_id: campaignId,
     });
+
+    
 
     // 2. تحقق من وجود budget مرتبط بالحملة
     let budget = await Budget.findOne({ where: { campaign_id: campaignId } });
@@ -153,14 +163,26 @@ exports.updateCapital = async (req, res) => {
 exports.deleteCapital = async (req, res) => {
   try {
     const { id } = req.params;
+    const capital = await FinanceCapital.findByPk(id);
 
-    const deleted = await FinanceCapital.destroy({ where: { id } });
-
-    if (!deleted) {
+    if (!capital) {
       return res.status(404).json({ message: "السجل غير موجود" });
     }
 
-    res.json({ message: "تم الحذف بنجاح" });
+    const campaignId = capital.campaign_id;
+    const amount = capital.amount;
+
+    await capital.destroy();
+
+    const budget = await Budget.findOne({ where: { campaign_id: campaignId } });
+
+    if (budget) {
+      budget.total_capital -= amount;
+      budget.remaining_balance = Math.max(0, budget.total_capital - budget.total_expenses);
+      await budget.save();
+    }
+
+    res.json({ message: "تم الحذف بنجاح وتحديث الميزانية" });
   } catch (err) {
     console.error("خطأ في الحذف:", err);
     res.status(500).json({ message: "فشل في حذف السجل", error: err.message });

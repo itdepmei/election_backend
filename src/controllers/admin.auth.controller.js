@@ -10,13 +10,11 @@ const District = require("../models/District.model");
 const Governate = require("../models/Governate.model");
 const ElectionCenter = require("../models/ElectionCenter.model");
 const Subdistrict = require("../models/Subdistrict.model");
-const CoordinatorElectionCenter = require("../models/CoordinatorElectionCenter");
-const DistrictManagerElectionCenter = require("../models/DistrictManagerElectionCenter");
-const sequelize = require('../config/database');
-const {addLog} = require('../utils/Logger')
+const sequelize = require("../config/database");
+const { addLog } = require("../utils/Logger");
+const Campaign = require("../models/Campain.model");
 
 // Admin: Add a new user
-
 
 exports.adminAddUser = async (req, res) => {
   const t = await sequelize.transaction(); // start transaction
@@ -65,7 +63,7 @@ exports.adminAddUser = async (req, res) => {
       "district_manager",
       "finance_auditor",
       "system_admin",
-      "owner"
+      "owner",
     ];
     if (!validRoles.includes(role)) {
       await t.rollback();
@@ -81,7 +79,10 @@ exports.adminAddUser = async (req, res) => {
         .json({ message: "الرجاء ادخال رقم الهاتف و كلمة المرور" });
     }
 
-    const existingUser = await User.findOne({ where: { phone_number }, transaction: t });
+    const existingUser = await User.findOne({
+      where: { phone_number },
+      transaction: t,
+    });
     if (existingUser) {
       await t.rollback();
       return res.status(409).json({ message: "رقم الهاتف موجود" });
@@ -114,7 +115,7 @@ exports.adminAddUser = async (req, res) => {
         profile_image: profileImageFile || null,
         identity_image: identityImageFile || null,
         voting_card_image: cardImageFile || null,
-        added_by: req.user.id, 
+        added_by: req.user.id,
         governorate_id: governorate_id || null,
         district_id: district_id || null,
         subdistrict_id: subdistrict_id || null,
@@ -125,83 +126,34 @@ exports.adminAddUser = async (req, res) => {
         is_active: is_active !== undefined ? is_active : true,
         registration_type: "admin_created",
         confirmed_voting: false,
-        campaign_id : req.user.campaign_id
+        campaign_id: req.user.campaign_id,
       },
       { transaction: t }
     );
 
-    // if (role === "coordinator") {
-    //   try {
-    //     const coordinator = await Coordinator.create(
-    //       {
-    //         user_id: newUser.id,
-    //       },
-    //       { transaction: t }
-    //     );
+    if (role === "owner") {
+      const campaign = await Campaign.create(
 
-    //     if (Array.isArray(election_centers_id)) {
-    //       for (const centerId of election_centers_id) {
-    //         try {
-    //           await CoordinatorElectionCenter.create(
-    //             {
-    //               coordinator_id: coordinator.id,
-    //               election_center_id: centerId,
-    //             },
-    //             { transaction: t }
-    //           );
-    //         } catch (err) {
-    //           await t.rollback();
-    //           return res.status(400).json({
-    //             message: "خطأ في اضافة المرتكز",
-    //             error: err.message,
-    //           });
-    //         }
-    //       }
-    //     }
-    //   } catch (err) {
-    //     await t.rollback();
-    //     return res.status(400).json({
-    //       message: "خطأ في اضافة المراكز",
-    //       error: err.message,
-    //     });
-    //   }
-    // }
+        { transaction: t }
+      );
 
-    // if (role === "district_manager") {
-    //   const districtManager = await DistrictManager.create(
-    //     {
-    //       user_id: newUser.id,
-    //       governorate_id,
-    //       district_id,
-    //     },
-    //     { transaction: t }
-    //   );
+      await newUser.update({ campaign_id: campaign.id }, { transaction: t });
+    }
 
-    //   if (Array.isArray(election_centers_id)) {
-    //     for (const centerId of election_centers_id) {
-    //       await DistrictManagerElectionCenter.create(
-    //         {
-    //           district_manager_id: districtManager.id,
-    //           election_center_id: centerId,
-    //         },
-    //         { transaction: t }
-    //       );
-    //     }
-    //   }
-    // }
-
-    await t.commit(); // commit transaction
+    await t.commit();
     res.status(201).json({ data: stripPassword(newUser) });
   } catch (err) {
-    await t.rollback(); // rollback on error
-    res.status(500).json({ message: "فشل في اضافة مستخدم", error: err.message });
+    await t.rollback();
+    res
+      .status(500)
+      .json({ message: "فشل في اضافة مستخدم", error: err.message });
   }
 };
 
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
-        where : {campaign_id : req.user.campaign_id},
+      where: { campaign_id: req.user.campaign_id },
       include: [
         {
           model: District,
