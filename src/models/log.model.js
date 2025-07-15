@@ -1,6 +1,6 @@
 // models/Log.model.js
 const { DataTypes } = require("sequelize");
-const sequelize = require("../config/database"); // adjust path as needed
+const sequelize = require("../config/database"); 
 
 const Log = sequelize.define("Log", {
   fullname: {
@@ -27,6 +27,14 @@ const Log = sequelize.define("Log", {
     validate: {
       notNull: { msg: "Message is required" },
       notEmpty: { msg: "Message cannot be empty" },
+    },
+  },
+  campaign_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true, 
+    references: {
+      model: 'Campaigns', 
+      key: 'id',
     },
   },
 }, {

@@ -145,7 +145,6 @@ exports.updateGovernorate = async (req, res) => {
   try {
     const { id } = req.params;
     const governorate = await Governorate.findByPk(id);
-
     if (!governorate) {
       return res.status(404).json({ message: "المحافظة غير موجودة" });
     }
@@ -155,9 +154,8 @@ exports.updateGovernorate = async (req, res) => {
       first_name: req.user?.first_name || "",
       second_name: req.user?.second_name || "",
       last_name: req.user?.last_name || "",
-
       action: "تعديل",
-      message: `تم تحديث المحافظة ${governorate.name} بنجاح`,
+      message: `تم تعديل المحافظة ${governorate.name} بنجاح`,
     });
 
     res.json({ data: governorate });
@@ -187,7 +185,6 @@ exports.deleteGovernorate = async (req, res) => {
       first_name: req.user?.first_name || "",
       second_name: req.user?.second_name || "",
       last_name: req.user?.last_name || "",
-
       action: "حذف",
       message: `تم حذف محافظة ${governorate.name} بنجاح`,
     });

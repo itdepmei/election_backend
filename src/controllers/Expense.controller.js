@@ -29,6 +29,15 @@ exports.createExpense = async (req, res) => {
     budget.remaining_balance = budget.total_capital - budget.total_expenses;
     await budget.save();
 
+    await addLog({
+      first_name: req.user?.first_name || "",
+      last_name: req.user?.last_name || "",
+      second_name: req.user?.second_name || "",
+      campaign_id: req.user?.campaign_id || null,
+      action: "إضافة ",
+      message: `تم إضافة مصروف بقيمة ${amount} للحملة`,
+    });
+
     res.status(201).json({
       data: { expense, budget },
     });
@@ -44,6 +53,7 @@ exports.createExpense = async (req, res) => {
 exports.getAllExpenses = async (req, res) => {
   try {
     const records = await Expense.findAll({
+      where: { campaign_id: req.user.campaign_id },
       include: {
         model: User,
         attributes: ['id', 'first_name', 'second_name', 'last_name'],
@@ -124,10 +134,19 @@ exports.updateExpense = async (req, res) => {
       title: title !== undefined ? title : expense.title,
     });
 
-    res.json({ message: "تم التحديث بنجاح", data: updatedExpense });
+    await addLog({
+      first_name: req.user?.first_name || "",
+      last_name: req.user?.last_name || "",
+      second_name: req.user?.second_name || "",
+      campaign_id: req.user?.campaign_id || null,
+      action: "تعديل",
+      message: `تم تعديل المصروف بقيمة ${amount} للحملة`,
+    });
+
+    res.json({ message: "تم التعديل بنجاح", data: updatedExpense });
   } catch (err) {
-    console.error("خطأ في التحديث:", err);
-    res.status(500).json({ message: "فشل في تحديث المصروف", error: err.message });
+    console.error("خطأ في التعديل:", err);
+    res.status(500).json({ message: "فشل في تعديل المصروف", error: err.message });
   }
 };
 
@@ -160,8 +179,17 @@ exports.deleteExpense = async (req, res) => {
 
       await budget.save();
     }
+    await addLog({
+      first_name: req.user?.first_name || "",
+      last_name: req.user?.last_name || "",
+      second_name: req.user?.second_name || "",
+      campaign_id: req.user?.campaign_id || null, 
+      action: "حذف",
+      message: `تم حذف المصروف بقيمة ${amount} للحملة`,
+    });
+  
 
-    res.json({ message: "تم حذف المصروف وتحديث الميزانية بنجاح" });
+    res.json({ message: "تم حذف المصروف وتعديل الميزانية بنجاح" });
   } catch (err) {
     console.error("خطأ في الحذف:", err);
     res.status(500).json({ message: "فشل في حذف المصروف", error: err.message });

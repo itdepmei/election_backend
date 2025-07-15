@@ -214,19 +214,23 @@ Campaign.hasMany(User, {
 
     FinanceCapital.belongsTo(User, {
       foreignKey: "added_by",
+      onDelete: "CASCADE",
       
     });
 
     User.hasMany(FinanceCapital, {
       foreignKey: "added_by",
+      onDelete: "CASCADE",
     });
 
     Expense.belongsTo(User, {
       foreignKey: "added_by",
+      onDelete: "SET NULL",
     });
 
     User.hasMany(Expense, {
       foreignKey: "added_by",
+      onDelete: "SET NULL",
     });
 
     Campaign.hasMany(FinanceCapital, { foreignKey: "campaign_id" });
@@ -246,11 +250,17 @@ Campaign.hasMany(User, {
     });
 
     NotificationRecipient.belongsTo(User, {
-      foreignKey: "user_id",
-    });
+  foreignKey: "user_id",
+  onDelete: "SET NULL",
+  onUpdate: "CASCADE",
+});
+User.hasMany(NotificationRecipient, {
+  foreignKey: "user_id",
+});
+
 
     ////
-    await sequelize.sync();
+await sequelize.sync({ alter: true });
     console.log("✅ Models synced");
   } catch (err) {
     console.log("❌ DB Error:", err);

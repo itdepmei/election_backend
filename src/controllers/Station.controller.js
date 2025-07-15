@@ -1,7 +1,7 @@
 const { Tapes, ElectionCenter } = require("../models");
 const Station = require("../models/Station.model");
 const sequelize = require("../config/database");
-// const { addLog } = require("../utils/Logger");
+const { addLog } = require("../utils/Logger");
 
 exports.createStations = async (req, res) => {
   try {
@@ -13,11 +13,14 @@ exports.createStations = async (req, res) => {
       }
 
       const created = await Station.bulkCreate(input, { validate: true });
-      // await addLog({
-      //   fullname: req.user?.full_name || "مستخدم مجهول",
-      //   action: "إضافة",
-      //   message: `تم إنشاء ${created.length} محطة `,
-      // });
+      await addLog({
+        first_name: req.user?.first_name || "",
+        second_name: req.user?.second_name || "",
+        last_name: req.user?.last_name || "",
+        campaign_id: req.user.campaign_id || null,
+        action: "إضافة",
+        message: `تم إنشاء ${created.length} محطة `,
+      });
       return res.status(201).json({ data: created });
     } else {
       const created = await Station.create(input);
@@ -145,17 +148,20 @@ exports.updateStation = async (req, res) => {
     }
 
     await station.update(updates);
-    // await addLog({
-    //   fullname: req.user?.full_name || "مستخدم مجهول",
-    //   action: "تعديل",
-    //   message: `تم تعديل محطة: ${station.name} (ID: ${station.id})`,
-    // });
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      campaign_id: req.user.campaign_id || null,
+      action: "تعديل",
+      message: `تم تعديل محطة: ${station.name} `,
+    });
 
     res.status(200).json({ data: station });
   } catch (err) {
     res
       .status(500)
-      .json({ message: "فشل في تحديث المحطة", error: err.message });
+      .json({ message: "فشل في تعديل المحطة", error: err.message });
   }
 };
 
@@ -175,11 +181,14 @@ exports.deleteStation = async (req, res) => {
         .json({ message: `لم يتم العثور على محطة بالمعرّف ${id}` });
     }
 
-    // await addLog({
-    //   fullname: req.user?.full_name || "مستخدم مجهول",
-    //   action: "حذف",
-    //   message: `تم حذف محطة بالمعرف ${id}`,
-    // });
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      campaign_id: req.user.campaign_id || null,
+      action: "حذف",
+      message: `تم حذف محطة بالمعرف ${id}`,
+    });
 
     res.status(204).json({ message: `تم حذف المحطة بالمعرّف ${id}` });
   } catch (err) {
@@ -189,12 +198,16 @@ exports.deleteStation = async (req, res) => {
 
 exports.deleteAllStations = async (req, res) => {
   try {
-    await Station.destroy({ where: {}, truncate: true }); // يحذف الكل ويعيد العدادات
-    // await addLog({
-    //   fullname: req.user?.full_name || "مستخدم مجهول",
-    //   action: "حذف الكل",
-    //   message: "تم حذف جميع المحطات من النظام",
-    // });
+    await Station.destroy({ where: {}, truncate: true }); 
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      campaign_id: req.user.campaign_id || null,
+      action: "حذف الكل",
+      message: "تم حذف جميع المحطات من النظام",
+    });
+
 
     res.status(205).json({
       message: "تم حذف جميع المحطات بنجاح",

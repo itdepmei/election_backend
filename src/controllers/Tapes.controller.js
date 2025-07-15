@@ -5,7 +5,6 @@ const District = require('../models/District.model')
 const Governorate = require('../models/Governate.model')
 const {addLog } = require('../utils/Logger')
 const sequelize = require("../config/database");
-const {getImagePath} = require('../utils/stripPassword')
 const User = require('../models/user.model')
 const { formatTape } = require('../utils/formatTape');
 
@@ -23,7 +22,6 @@ exports.createTapes = async (req, res) => {
     }
 
     const files = req.files?.tape_image || [];
-
     const tapesToCreate = dataArray.map((item, index) => ({
       election_center_id: item.election_center_id,
       station_id: item.station_id,
@@ -38,14 +36,15 @@ exports.createTapes = async (req, res) => {
 
     
 
-    // await addLog({
-    //   first_name: req.user?.first_name || "" ,
-    //   second_name: req.user?.second_name || "",
-    //   last_name: req.user?.last_name  || "",
-    //   action: "إضافة",
-    //   message: `تم إنشاء ${tapes.length} شريط
-    //   `,
-    // });
+    await addLog({
+      first_name: req.user?.first_name || "" ,
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name  || "",
+      campaign_id: req.user.campaign_id || null,
+      action: "إضافة",
+      message: `تم إنشاء ${tapes.length} شريط
+      `,
+    });
 
     res.status(201).json({ data: tapes });
   } catch (err) {
@@ -144,6 +143,8 @@ exports.getTapesByCenterId = async (req, res) => {
       return res.status(404).json({ message: "لا توجد أشرطة في هذا المركز الانتخابي" });
     }
     // res.json({ data: formatTape(tapes) });
+
+
     res.json({ data: tapes.map(formatTape) });
 
   } catch (err) {
@@ -215,18 +216,21 @@ exports.updateTape = async (req, res) => {
     };
 
     await tape.update(updateData);
-    // await addLog({
-    //   fullname: req.user?.full_name || "مستخدم مجهول",
-    //   action: "تعديل",
-    //   message: `تم تعديل الشريط (ID: ${tape.id})`,
-    // });
+    await addLog({
+      first_name: req.user?.first_name || "" ,
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name  || "",
+      campaign_id: req.user.campaign_id || null,
+      action: "تعديل",
+      message: `تم تعديل الشريط (ID: ${tape.id})`,
+    });
 
     res.json({ data: tape });
   } catch (err) {
-    console.error("خطأ في تحديث الشريط:", err);
+    console.error("خطأ في تعديل الشريط:", err);
     res
       .status(500)
-      .json({ message: "فشل في تحديث الشريط", error: err.message });
+      .json({ message: "فشل في تعديل الشريط", error: err.message });
   }
 };
 
@@ -238,11 +242,14 @@ exports.deleteTape = async (req, res) => {
       return res.status(404).json({ message: "الشريط غير موجود" });
     }
 
-    // await addLog({
-    //   fullname: req.user?.full_name || "مستخدم مجهول",
-    //   action: "حذف",
-    //   message: `تم حذف الشريط (ID: ${req.params.id})`,
-    // });
+    await addLog({
+      first_name: req.user?.first_name || "" ,
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name  || "",
+      campaign_id: req.user.campaign_id || null,
+      action: "حذف",
+      message: `تم حذف الشريط (ID: ${req.params.id})`,
+    });
 
     res.status(205).json({ message: "تم حذف الشريط بنجاح" });
   } catch (err) {
@@ -254,11 +261,14 @@ exports.deleteTape = async (req, res) => {
 exports.deleteAllTapes = async (req, res) => {
   try {
     await Tapes.destroy({ where: {}, truncate: true });
-    // await addLog({
-    //   fullname: req.user?.full_name || "مستخدم مجهول",
-    //   action: "حذف الكل",
-    //   message: "تم حذف جميع الأشرطة من النظام",
-    // });
+    await addLog({
+      first_name: req.user?.first_name || "" ,
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name  || "",
+      campaign_id: req.user.campaign_id || null,
+      action: "حذف الكل",
+      message: "تم حذف جميع الأشرطة من النظام",
+    });
 
     res.status(205).json({ message: "تم حذف جميع الأشرطة" });
   } catch (err) {
@@ -271,7 +281,6 @@ exports.deleteAllTapes = async (req, res) => {
 
 
 exports.getTapesStats = async (req, res) => {
-  console.log("🚀 تم الوصول إلى /api/tapes/stats");
 
   try {
     const total = await Tapes.count();

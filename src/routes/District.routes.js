@@ -8,8 +8,8 @@ const {authenticate , authorizeExcept} = require('../middlewares/auth.middleware
 router.get('/', DistrictController.getAllDistricts);
 router.get('/governorate/:id' , DistrictController.getDistrictByGovernateId)
 
-// router.use(authenticate);
-// router.use(authorizeExcept('voter'))
+router.use(authenticate);
+router.use(authorizeExcept('voter'))
 router.post('/', DistrictController.createDistricts);
 router.get('/:id', DistrictController.getDistrictById);
 router.put('/:id', DistrictController.updateDistrict);

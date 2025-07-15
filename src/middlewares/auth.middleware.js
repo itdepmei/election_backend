@@ -3,7 +3,6 @@ const User = require("../models/user.model");
 
 exports.authenticate = async (req, res, next) => {  
   let token;
-  console.log("auth")
 
   // Check Authorization header for Bearer token
   if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
@@ -23,7 +22,6 @@ exports.authenticate = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findByPk(decoded.id);
-    console.log("user auth")
     if (!user) {
       return res.status(401).json({ message: "Invalid token user" });
       
@@ -56,7 +54,6 @@ exports.authorize = (roles) => {
 exports.authorizeExcept = (excludedRoles) => {
   return (req, res, next) => {
     const userRole = req.user?.role?.toLowerCase().trim();
-    console.log("ggggggg" , userRole)
 
     if (!userRole) {
       return res.status(401).json({ message: "Unauthorized: missing role" });
@@ -68,4 +65,15 @@ exports.authorizeExcept = (excludedRoles) => {
 
     next();
   };
+};
+
+exports.CampaignAuth = (req, res, next) => {
+  const campaignId = req.user.campaignId;
+  if (!campaignId) {
+    return res.status(400).json({ message: "Campaign ID is required" });
+  }
+  if (req.user.campaign_id !== campaignId) {
+    return res.status(403).json({ message: "Access denied for this campaign" });
+  }
+  next();
 };

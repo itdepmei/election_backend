@@ -273,7 +273,7 @@ exports.updateDistrictManager = async (req, res) => {
       return res.status(404).json({ message: "مدير قضاء غير موجود" });
     }
 
-    // تحديث الحقول فقط إذا تم إرسالها
+    // تعديل الحقول فقط إذا تم إرسالها
     const updatedFields = {
       ...(email !== undefined && { email }),
       ...(phone_number !== undefined && { phone_number }),
@@ -323,7 +323,7 @@ exports.updateDistrictManager = async (req, res) => {
 
     await transaction.commit();
 
-    // إرجاع البيانات بعد التحديث
+    // إرجاع البيانات بعد التعديل
     const district_manager_data = await DistrictManager.findByPk(id, {
       attributes: { exclude: ['user_id'] },
       include: [
@@ -344,7 +344,7 @@ exports.updateDistrictManager = async (req, res) => {
     await transaction.rollback();
     console.error("Failed to update coordinator:", err);
     res.status(500).json({
-      message: "فشل في تحديث مدير القضاء",
+      message: "فشل في تعديل مدير القضاء",
       error: err.message,
     });
   }

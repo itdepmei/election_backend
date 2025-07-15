@@ -22,9 +22,9 @@ const DistrictManagerElectionCenter = sequelize.define("DistrictManagerElectionC
   },
 }, {
   tableName: "District_managers_centers",
-  timestamps: false,
+  timestamps: true,
   uniqueKeys: {
-    short_unique: { // اسم بسيط قصير
+    short_unique: { 
       fields: ['district_manager_id', 'election_center_id']
     }
   }

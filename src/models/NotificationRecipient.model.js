@@ -4,19 +4,11 @@ const sequelize = require("../config/database");
 const NotificationRecipient = sequelize.define("NotificationRecipient", {
   user_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-     references: {
-        model: "users",
-        key: "id",
-      },
+  allowNull: true, 
   },
   notification_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
-     references: {
-        model: "notifications",
-        key: "id",
-      },
   },
   isRead: {
     type: DataTypes.BOOLEAN,

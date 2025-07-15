@@ -1,19 +1,17 @@
 const User = require("../models/user.model");
 const bcrypt = require("bcrypt");
-const Coordinator = require("../models/Coordinator.model");
-const DistrictManager = require("../models/DistrictManager.model");
 const {
   stripPasswordFromArray,
   stripPassword,
 } = require("../utils/stripPassword");
 const District = require("../models/District.model");
-const Governate = require("../models/Governate.model");
 const ElectionCenter = require("../models/ElectionCenter.model");
 const Subdistrict = require("../models/Subdistrict.model");
 const sequelize = require("../config/database");
 const { addLog } = require("../utils/Logger");
 const Campaign = require("../models/Campain.model");
-
+const Coordinator = require("../models/Coordinator.model");
+const DistrictManager = require("../models/DistrictManager.model");
 // Admin: Add a new user
 
 exports.adminAddUser = async (req, res) => {
@@ -124,7 +122,6 @@ exports.adminAddUser = async (req, res) => {
         confirmed_voting: confirmed_voting || false,
         can_vote: can_vote || false,
         is_active: is_active !== undefined ? is_active : true,
-        registration_type: "admin_created",
         confirmed_voting: false,
         campaign_id: req.user.campaign_id,
       },
@@ -139,6 +136,17 @@ exports.adminAddUser = async (req, res) => {
 
       await newUser.update({ campaign_id: campaign.id }, { transaction: t });
     }
+    
+      await addLog({
+        first_name: newUser.first_name || "",
+        second_name: newUser.second_name || "",
+        last_name: newUser.last_name || "",
+        campaign_id: req.user.campaign_id || null,
+        action: "اضافة",
+        message: `تم تسجيل مستخدم جديد برقم الهاتف: ${newUser.phone_number}`,
+      });
+
+
 
     await t.commit();
     res.status(201).json({ data: stripPassword(newUser) });
@@ -181,7 +189,7 @@ exports.getUserById = async (req, res) => {
   try {
     const id = req.params.id;
     const user = await User.findOne({
-      where: { id },
+      where: { id , campaign_id: req.user.campaign_id },
       include: [
         {
           model: District,
@@ -210,7 +218,7 @@ exports.getAllUsersByRole = async (req, res) => {
   try {
     const { role } = req.params;
     const users = await User.findAll({
-      where: { role },
+      where: { role , campaign_id: req.user.campaign_id },
       include: [
         {
           model: District,
@@ -237,10 +245,39 @@ exports.getAllUsersByRole = async (req, res) => {
   }
 };
 
+exports.getAllConfirmedVoters = async (req, res) => {
+  campaignId = req.user.campaign_id;
+  try {
+    const users = await User.findAll({
+      where: { confirmed_voting: true, campaign_id: campaignId },
+      include: [
+        {
+          model: District,
+          attributes: ["id", "name"],
+        },
+        {
+          model: Subdistrict,
+          attributes: ["id", "name"],
+        },
+        {
+          model: ElectionCenter,
+          attributes: ["id", "name"],
+        },
+      ],
+    });
+    res.json({ data: stripPasswordFromArray(users) });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "فشل في جلب الناخبين المؤكدين", error: err.message });
+  }
+};
+
 // Admin: Update any user
 exports.adminUpdateUser = async (req, res) => {
   try {
     const { id } = req.params;
+    const requestBody = req.user;
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: "المستخدم غير موجود" });
@@ -312,12 +349,21 @@ exports.adminUpdateUser = async (req, res) => {
     await user.update(updateData);
 
     const fullUser = await User.findByPk(user.id);
+    
+      await addLog({
+        first_name: requestBody.first_name || "",
+        second_name: requestBody.second_name || "",
+        last_name: requestBody.last_name || "",
+        campaign_id: requestBody.campaign_id || null,
+        action: "تعديل",
+        message: `تم تعديل بيانات المستخدم برقم الهاتف: ${user.phone_number}`,
+      });
 
     res.status(200).json({ data: stripPassword(fullUser) });
   } catch (err) {
     res
       .status(500)
-      .json({ message: "فشل في تحديث المستخدم", error: err.message });
+      .json({ message: "فشل في تعديل المستخدم", error: err.message });
   }
 };
 
@@ -325,6 +371,8 @@ exports.adminUpdateUser = async (req, res) => {
 exports.adminDeleteUser = async (req, res) => {
   try {
     const { id } = req.params;
+    const requestBody = req.user;
+
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: "المستخدم غير موجود" });
@@ -334,6 +382,13 @@ exports.adminDeleteUser = async (req, res) => {
     }
 
     await user.destroy();
+    await addLog({
+      first_name: requestBody.first_name || "",
+      second_name: requestBody.second_name || "",
+      last_name: requestBody.last_name || "",
+      action: "حذف",
+      message: `تم حذف المستخدم برقم الهاتف: ${user.phone_number}`,
+    });
     res.json({ message: "تم حذف المستخدم بنجاح" });
   } catch (err) {
     res
@@ -346,6 +401,16 @@ exports.deleteAllUsers = async (req, res) => {
   try {
     await User.destroy({ where: {} });
     res.json({ message: "تم حذف جميع المستخدمين بنجاح" });
+
+    await addLog({
+      first_name: req.user.first_name || "",
+      second_name: req.user.second_name || "",
+      last_name: req.user.last_name || "",
+      campaign_id: req.user.campaign_id || null,
+      action: "حذف",
+      message: "تم حذف جميع المستخدمين",
+    });
+
   } catch (err) {
     res
       .status(500)
@@ -381,6 +446,14 @@ exports.setAdminRole = async (req, res) => {
     }
     user.role = makeAdmin ? "system_admin" : "user";
     await user.save();
+    await addLog({
+      first_name: req.user.first_name || "",
+      second_name: req.user.second_name || "",
+      last_name: req.user.last_name || "",
+      campaign_id: req.user.campaign_id || null,
+      action: "تعديل ",
+      message: `تم ${makeAdmin ? "تعيين" : "إلغاء"} دور admin للمستخدم برقم الهاتف: ${user.phone_number}`,
+    });
     res.json({ data: stripPassword(user) });
   } catch (err) {
     res
@@ -390,12 +463,10 @@ exports.setAdminRole = async (req, res) => {
 };
 
 exports.changeUserRole = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const { newRole } = req.body;
-    if (!req.body) {
-      return res.status(400).json({ message: "ادخل المعلومات المطلوبة" });
-    }
+    const { newRole, election_centers_id } = req.body;
 
     if (!newRole) {
       return res.status(400).json({ message: "ادخل الدور" });
@@ -410,27 +481,114 @@ exports.changeUserRole = async (req, res) => {
       "finance_auditor",
       "system_admin",
     ];
+
     if (!validRoles.includes(newRole)) {
-      return res.status(400).json({
-        message: "الدور غير موجود",
-      });
+      return res.status(400).json({ message: "الدور غير موجود" });
     }
 
-    const user = await User.findByPk(id);
+    const user = await User.findByPk(id, { transaction });
     if (!user) {
       return res.status(404).json({ message: "المستخدم غير موجود" });
     }
 
+    const previousRole = user.role;
     user.role = newRole;
-    await user.save();
+    await user.save({ transaction });
 
-    res.json({ data: stripPassword(user) });
+    // === Handle Coordinator Logic ===
+    if (newRole === "coordinator") {
+      let coordinator = await Coordinator.findOne({
+        where: { user_id: user.id },
+        transaction,
+      });
+
+      if (!coordinator) {
+        coordinator = await Coordinator.create({ user_id: user.id }, { transaction });
+      }
+
+      // ✅ Handle election_centers_id exactly like in addCoordinator
+      let centers = [];
+
+      if (Array.isArray(election_centers_id)) {
+        centers = election_centers_id;
+      } else if (typeof election_centers_id === "string") {
+        try {
+          const parsed = JSON.parse(election_centers_id);
+          centers = Array.isArray(parsed) ? parsed : [parsed];
+        } catch {
+          centers = election_centers_id.split(",");
+        }
+      } else if (typeof election_centers_id === "number") {
+        centers = [election_centers_id];
+      } else if (election_centers_id !== null && election_centers_id !== undefined) {
+        centers = [election_centers_id];
+      }
+
+      centers = centers.map((id) => Number(id)).filter(Boolean);
+
+      if (!centers.length) {
+        await transaction.rollback();
+        return res.status(400).json({
+          message: "الرجاء إدخال مراكز انتخابية صحيحة للمركز",
+        });
+      }
+
+      const validCenters = await ElectionCenter.findAll({
+        where: { id: centers },
+        transaction,
+      });
+
+      if (validCenters.length !== centers.length) {
+        const foundIds = validCenters.map((c) => c.id);
+        const missing = centers.filter((id) => !foundIds.includes(id));
+        await transaction.rollback();
+        return res.status(404).json({
+          message: `المراكز التالية غير موجودة: ${missing.join(", ")}`,
+        });
+      }
+
+      await coordinator.setElectionCenters(validCenters, { transaction });
+    }
+
+    // === Handle District Manager Logic ===
+    if (newRole === "district_manager") {
+      const exists = await DistrictManager.findOne({ where: { user_id: user.id }, transaction });
+      if (!exists) {
+        await DistrictManager.create({ user_id: user.id }, { transaction });
+      }
+    }
+
+    // === Clean up previous role side-tables ===
+    if (previousRole === "coordinator" && newRole !== "coordinator") {
+      await Coordinator.destroy({ where: { user_id: user.id }, transaction });
+    }
+
+    if (previousRole === "district_manager" && newRole !== "district_manager") {
+      await DistrictManager.destroy({ where: { user_id: user.id }, transaction });
+    }
+
+    await addLog({
+      first_name: req.user.first_name || "",
+      second_name: req.user.second_name || "",
+      last_name: req.user.last_name || "",
+      campaign_id: req.user.campaign_id || null,
+      action: "تعديل ",
+      message: `تم تغيير دور المستخدم برقم الهاتف: ${user.phone_number} إلى ${newRole}`,
+    });
+
+    await transaction.commit();
+
+    return res.json({ data: stripPassword(user) });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "لا يمكن تحديث دور المستخدم", error: err.message });
+    await transaction.rollback();
+    console.error("🚨 Failed to change user role:", err);
+    return res.status(500).json({
+      message: "لا يمكن تعديل دور المستخدم",
+      error: err.message,
+    });
   }
 };
+
 
 // confirm-voting
 exports.confirmVoting = async (req, res) => {
@@ -460,6 +618,15 @@ exports.confirmVoting = async (req, res) => {
 
     user.confirmed_voting = true;
     await user.save();
+
+    await addLog({
+      first_name: req.user.first_name || "",
+      second_name: req.user.second_name || "",
+      last_name: req.user.last_name || "",
+      campaign_id: req.user.campaign_id || null,
+      action: "تعديل ",
+      message: `تم تأكيد تصويت المستخدم برقم الهاتف: ${user.phone_number}`,
+    });
 
     res.json({ data: user });
   } catch (err) {

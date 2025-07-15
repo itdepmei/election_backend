@@ -34,9 +34,6 @@ exports.addCoordinator = async (req, res) => {
       election_centers_id = [],
     } = req.body;
 
-    // Print raw incoming data
-    console.log("📦 Incoming body:", req.body);
-
     // Handle file uploads if using multer
     const profileImageFile = req.files?.profile_image?.[0]?.filename || null;
     const identityImageFile = req.files?.identity_image?.[0]?.filename || null;
@@ -87,7 +84,7 @@ exports.addCoordinator = async (req, res) => {
           has_updated_card === "true" || has_updated_card === true,
         can_vote: can_vote === "true" || can_vote === true,
         is_active: is_active !== undefined ? is_active : true,
-        registration_type: "admin_added",
+        campaign_id: req.user.campaign_id, 
       },
       { transaction }
     );
@@ -118,7 +115,6 @@ exports.addCoordinator = async (req, res) => {
     // Clean IDs: convert to numbers & filter invalid ones
     centers = centers.map((id) => Number(id)).filter(Boolean);
 
-    console.log("✅ Cleaned election_center_ids:", centers);
 
     // Insert election center links
     for (const centerId of centers) {
@@ -178,7 +174,8 @@ exports.getAllCoordinators = async (req, res) => {
       include: [
         {
           model: User,
-          // راح نستخدم stripPassword بعدين
+          attributes: { exclude: ["password_hash"] },
+          where: { campaign_id: req.user.campaign_id }, // Filter by campaign_id
         },
         {
           model: ElectionCenter,
@@ -292,7 +289,7 @@ exports.updateCoordinator = async (req, res) => {
       return res.status(404).json({ message: "المرتكز غير موجود" });
     }
 
-    // تحديث الحقول فقط إذا تم إرسالها
+    // تعديل الحقول فقط إذا تم إرسالها
     const updatedFields = {
       ...(email !== undefined && { email }),
       ...(phone_number !== undefined && { phone_number }),
@@ -329,30 +326,39 @@ exports.updateCoordinator = async (req, res) => {
 
     // فقط إذا تم إرسال election_centers_id، حدث العلاقة
     if (req.body.election_centers_id !== undefined) {
-      let centers = [];
-      if (Array.isArray(election_centers_id)) {
-        centers = election_centers_id;
-      } else if (typeof election_centers_id === "string") {
-        try {
-          centers = JSON.parse(election_centers_id);
-        } catch {
-          centers = election_centers_id.split(",");
-        }
-      }
+  let centers = [];
 
-      centers = centers.map((id) => Number(id)).filter(Boolean);
-
-      await coordinator.setElectionCenters([], { transaction });
-      const validCenters = await ElectionCenter.findAll({
-        where: { id: centers },
-        transaction,
-      });
-      await coordinator.addElectionCenters(validCenters, { transaction });
+  if (Array.isArray(election_centers_id)) {
+    centers = election_centers_id;
+  } else if (typeof election_centers_id === "string") {
+    try {
+      const parsed = JSON.parse(election_centers_id);
+      centers = Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      centers = election_centers_id.split(",");
     }
+  } else if (typeof election_centers_id === "number") {
+    centers = [election_centers_id];
+  } else if (election_centers_id !== null && election_centers_id !== undefined) {
+    centers = [election_centers_id];
+  }
+
+  centers = centers.map((id) => Number(id)).filter(Boolean);
+
+  await coordinator.setElectionCenters([], { transaction });
+
+  const validCenters = await ElectionCenter.findAll({
+    where: { id: centers },
+    transaction,
+  });
+
+  await coordinator.addElectionCenters(validCenters, { transaction });
+}
+
 
     await transaction.commit();
 
-    // إرجاع البيانات بعد التحديث
+    // إرجاع البيانات بعد التعديل
     const coordinatorData = await Coordinator.findByPk(id, {
       attributes: { exclude: ["user_id"] },
       include: [
@@ -373,7 +379,7 @@ exports.updateCoordinator = async (req, res) => {
     await transaction.rollback();
     console.error("Failed to update coordinator:", err);
     res.status(500).json({
-      message: "فشل في تحديث المرتكز",
+      message: "فشل في تعديل المرتكز",
       error: err.message,
     });
   }

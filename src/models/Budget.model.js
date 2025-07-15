@@ -3,7 +3,7 @@ const sequelize = require("../config/database");
 
 const Budget = sequelize.define("Budget", {
   campaign_id: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     unique: true,
     references: {

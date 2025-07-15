@@ -269,7 +269,7 @@ exports.updateElectionCenter = async (req, res) => {
     res.json({ data: center });
   } catch (err) {
     console.error("Update error:", err);
-    res.status(500).json({ message: "فشل في تحديث مركز الاقتراع", error: err.message });
+    res.status(500).json({ message: "فشل في تعديل مركز الاقتراع", error: err.message });
   }
 };
 

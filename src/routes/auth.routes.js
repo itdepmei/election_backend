@@ -20,11 +20,13 @@ const {
   changeUserRole,
   confirmVoting,
   deleteAllUsers,
+  getAllConfirmedVoters,
 } = require("../controllers/admin.auth.controller");
 const { authenticate, authorize } = require("../middlewares/auth.middleware");
 const upload = require("../config/multer");
 
-///
+
+
 router.post(
   "/register",
   upload.fields([
@@ -35,8 +37,11 @@ router.post(
   register
 );
 router.post("/login", login);
-//
+
+
+
 router.use(authenticate);
+
 router.put("/change-password", changePassword);
 router.post("/logout", logout);
 router.get("/user", getMe);
@@ -51,7 +56,7 @@ router.put(
 );
 
 
-router.use(authorize(["system_admin" , "owner"]));
+// router.use(authorize(["system_admin" , "owner"]));
 
 router.post(
   "/users",
@@ -62,6 +67,8 @@ router.post(
   ]),
   adminAddUser
 );
+
+router.get("/users/confirm-voting", getAllConfirmedVoters);
 router.get("/users", getAllUsers);
 router.get("/users/:id", getUserById);
 router.get("/users-role/:role", getAllUsersByRole);

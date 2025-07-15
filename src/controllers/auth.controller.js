@@ -83,7 +83,6 @@ exports.register = [
         identity_image: identityImageFile || null,
         voting_card_image: cardImageFile || null,
         // is_active: is_active !== undefined ? is_active : true,
-        registration_type: "self_registered",
         confirmed_voting: false,
       });
 
@@ -97,11 +96,15 @@ exports.register = [
         { expiresIn: "7d" }
       );
 
-      // await addLog({
-      //   fullname: `${newUser.first_name} ${newUser.last_name}`,
-      //   action: "اضافة",
-      //   message: `تم تسجيل مستخدم جديد برقم الهاتف: ${newUser.phone_number}`,
-      // });
+      await addLog({
+        first_name: newUser.first_name || "",
+        second_name: newUser.second_name || "",
+        last_name: newUser.last_name || "",
+        action: "اضافة",
+        message: `تم تسجيل مستخدم جديد برقم الهاتف: ${newUser.phone_number}`,
+      });
+
+
 
       res.cookie("token", token, {
         httpOnly: true,
@@ -148,14 +151,8 @@ exports.login = [
         { expiresIn: "7d" }
       );
 
-      // await addLog({
-      //   first_name: req.user?.first_name || "",
-      //   second_name: req.user?.second_name || "",
-      //   last_name: req.user?.last_name || "",
 
-      //   action: "اضافة",
-      //   message: `تم تسجيل دخول المستخدم برقم الهاتف: ${user.phone_number}`,
-      // });
+
 
       res.cookie("token", token, {
         httpOnly: true,
@@ -184,6 +181,7 @@ exports.logout = (req, res) => {
     first_name: req.user?.first_name || "",
     second_name: req.user?.second_name || "",
     last_name: req.user?.last_name || "",
+    campaign_id: req.user?.campaign_id || null,
     action: "تسجيل خروج",
     message: `تم تسجيل خروج المستخدم`,
   });
@@ -269,9 +267,10 @@ exports.updateMe = async (req, res) => {
       first_name: req.user?.first_name || "",
       second_name: req.user?.second_name || "",
       last_name: req.user?.last_name || "",
+      campaign_id: user.campaign_id || null,
 
-      action: "تحديث",
-      message: `تم تحديث بيانات المستخدم : ${user.fullname}`,
+      action: "تعديل",
+      message: `تم تعديل بيانات المستخدم : ${user.fullname}`,
     });
 
     const token = jwt.sign(
@@ -288,7 +287,7 @@ exports.updateMe = async (req, res) => {
   } catch (err) {
     res
       .status(500)
-      .json({ message: "فشل في تحديث المستخدم", error: err.message });
+      .json({ message: "فشل في تعديل المستخدم", error: err.message });
   }
 };
 
@@ -320,6 +319,7 @@ exports.changePassword = async (req, res) => {
       first_name: req.user?.first_name || "",
       second_name: req.user?.second_name || "",
       last_name: req.user?.last_name || "",
+      campaign_id: user.campaign_id || null,
 
       action: "تعديل",
       message: `تم تغيير كلمة مرور المستخدم : ${user.fullname}`,

@@ -2,7 +2,7 @@ const { ElectionCenter, User, sequelize } = require("../models");
 const District = require("../models/District.model");
 const Governorate = require("../models/Governate.model");
 const Subdistrict = require("../models/Subdistrict.model");
-
+const { addLog } = require("../utils/Logger");
 // Create one or many districts with duplicate name check
 // إنشاء أقضية
 exports.createDistricts = async (req, res) => {
@@ -55,11 +55,13 @@ exports.createDistricts = async (req, res) => {
     res.status(201).json({
       data: newDistricts,
     });
-    // await addLog({
-    //   fullname: req.user?.full_name || "مستخدم مجهول",
-    //   action: "إضافة",
-    //   message: `تم إنشاء ${newDistricts.length} قضاء جديد`,
-    // });
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      action: "إضافة",
+      message: `تم إنشاء ${newDistricts.length} قضاء جديد`,
+    });
   } catch (err) {
     res
       .status(500)
@@ -202,6 +204,8 @@ exports.getDistrictByGovernateId = async (req, res) => {
       return obj;
     });
 
+      
+
 
     res.json({ data: data });
   } catch (err) {
@@ -233,13 +237,13 @@ exports.updateDistrict = async (req, res) => {
     }
 
     await district.save();
-    // await addLog({
-    //   first_name: req.user?.first_name || "",
-    //   second_name: req.user?.second_name || "",
-    //   last_name: req.user?.last_name || "",
-    //   action: "تعديل",
-    //   message: `تم تعديل القضاء: ${district.name}`,
-    // });
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      action: "تعديل",
+      message: `تم تعديل القضاء: ${district.name}`,
+    });
 
     res.json({ data: district });
   } catch (err) {
@@ -258,6 +262,13 @@ exports.deleteDistrict = async (req, res) => {
       return res.status(404).json({ message: "القضاء غير موجود" });
     }
     await district.destroy();
+    await addLog({  
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      action: "حذف",
+      message: `تم حذف القضاء: ${district.name}`,
+    });
 
 
     res.status(205).json({ message: "تم حذف القضاء بنجاح" });
@@ -272,14 +283,14 @@ exports.deleteAllDistricts = async (req, res) => {
   try {
     await District.destroy({ truncate: true, cascade: true });
     res.json({ message: "تم حذف جميع الأقضية بنجاح" });
-    // await addLog({
-    //   first_name: req.user?.first_name || "",
-    //   second_name: req.user?.second_name || "",
-    //   last_name: req.user?.last_name || "",
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
 
-    //   action: "حذف الكل",
-    //   message: `تم حذف جميع الأقضية`,
-    // });
+      action: "حذف الكل",
+      message: `تم حذف جميع الأقضية`,
+    });
   } catch (err) {
     res
       .status(500)

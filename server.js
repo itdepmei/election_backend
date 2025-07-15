@@ -1,11 +1,12 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
-
+const http = require('http');
 const { initModels } = require("./src/models");
 const cookieParser = require("cookie-parser");
 const path = require("path");
 require("dotenv").config();
+const { Server } = require('socket.io');
 
 //routes
 const authRoutes = require("./src/routes/auth.routes");
@@ -23,6 +24,7 @@ const FinanceCapitalRoute = require('./src/routes/FinanceCapital.routes')
 const ExpenseRoute = require('./src/routes/Expense.routes')
 const NotificationRoute = require('./src/routes/Notification.route')
 const BudgetRoute = require('./src/routes/Budget.routes')
+const LocationRoute = require('./src/routes/Location.routes')
 
 //
 const app = express();
@@ -33,6 +35,20 @@ const app = express();
 // ],
 //   credentials: true
 // }));
+
+
+const server = http.createServer(app);
+
+// 👇 WebSocket server
+
+const io = new Server(server, {
+  cors: { origin: "*", methods: ["GET", "POST"]  },
+});
+
+app.set("io", io);
+
+
+
 app.use(cors());
 app.use(
   helmet.contentSecurityPolicy({
@@ -54,10 +70,13 @@ app.use(
 })
 );
 
-// ));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+
+
 app.use("/api/governate", governateroutes);
 app.use("/api/district", districtroutes);
 app.use("/api/subdistrict", subdistrictroutes);
@@ -72,9 +91,47 @@ app.use('/api/finance-capital' , FinanceCapitalRoute)
 app.use('/api/expense' , ExpenseRoute)
 app.use('/api/notifications' , NotificationRoute)
 app.use('/api/budget' ,  BudgetRoute)
-
-
+app.use('/api/location', LocationRoute);
 app.use("/api/", authRoutes);
+
+
+
+io.on("connection", (socket) => {
+  console.log(`🔌 Socket connected: ${socket.id}`);
+
+  // Client tells server their role and userId for room joining
+  socket.on("join", ({ role, userId }) => {
+    if (role) {
+      socket.join(role); // join role room
+      socket.join(`user_${userId}`); // join user-specific room
+      
+      console.log(`👥 User ${userId} joined role room: ${role}`);
+    }
+  });
+
+  // Client requests all notifications
+  socket.on("notifications:fetchAll", async () => {
+    try {
+      const Notification = require("./models/Notification.model");
+      const notifications = await Notification.findAll({
+        order: [["createdAt", "DESC"]],
+      });
+
+      socket.emit("notifications:all", notifications);
+    } catch (err) {
+      socket.emit("notifications:error", {
+        message: "فشل في جلب الإشعارات",
+        error: err.message,
+      });
+    }
+  });
+  socket.on("disconnect", () => {
+    console.log(`❌ Socket disconnected: ${socket.id}`);
+  });
+});  
+
+
+
 
 const PORT = process.env.PORT || 5000;
 initModels().then(() => {

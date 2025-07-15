@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Coordinator = require('../controllers/Coordinator.controller');
 const upload = require('../config/multer')
+const { authenticate } = require('../middlewares/auth.middleware');
 
-
+router.use(authenticate);
 router.get('/', Coordinator.getAllCoordinators);
 router.get('/:id'  , Coordinator.getCoordinatorById)
 

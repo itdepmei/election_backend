@@ -45,11 +45,15 @@ exports.createSubdistricts = async (req, res) => {
       ignoreDuplicates: true,
     });
 
-    // await addLog({
-    //   fullname: req.user?.full_name || "مستخدم مجهول",
-    //   action: "إضافة",
-    //   message: `تم إنشاء ${newSubdistricts.name} ناحية`,
-    // });
+
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      campaign_id: req.user?.campaign_id || null,
+      action: "إضافة",
+      message: `تم إنشاء ناحية`,
+    });
 
     res.status(201).json({ data: newSubdistricts });
   } catch (err) {
@@ -220,17 +224,20 @@ exports.updateSubdistrict = async (req, res) => {
     }
 
     await subdistrict.update({ name, district_id });
-    // await addLog({
-    //   fullname: req.user?.full_name || "مستخدم مجهول",
-    //   action: "تعديل",
-    //   message: `تم تعديل الناحية: ${subdistrict.name}`,
-    // });
+    await addLog({
+      first_name: req.user?.first_name || "",
+      last_name: req.user?.last_name || "",
+      second_name: req.user?.second_name || "",
+      campaign_id: req.user?.campaign_id || null, 
+      action: "تعديل",
+      message: `تم تعديل الناحية: ${subdistrict.name}`,
+    });
 
     res.status(200).json({ data: subdistrict });
   } catch (err) {
     res
       .status(500)
-      .json({ message: "فشل في تحديث الناحية", error: err.message });
+      .json({ message: "فشل في تعديل الناحية", error: err.message });
   }
 };
 
@@ -242,11 +249,14 @@ exports.deleteSubdistrict = async (req, res) => {
       return res.status(404).json({ message: "الناحية غير موجودة" });
     }
     await subdistrict.destroy();
-    // await addLog({
-    //   fullname: req.user?.full_name || "مستخدم مجهول",
-    //   action: "حذف",
-    //   message: `تم حذف الناحية: ${subdistrict.name} `,
-    // });
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      campaign_id: req.user?.campaign_id || null,
+      action: "حذف",
+      message: `تم حذف الناحية: ${subdistrict.name} `,
+    });
 
     res.status(205).json({ message: "تم حذف الناحية بنجاح" });
   } catch (err) {
@@ -260,11 +270,14 @@ exports.deleteSubdistrict = async (req, res) => {
 exports.deleteAllSubdistricts = async (req, res) => {
   try {
     await Subdistrict.destroy({ where: {}, truncate: true });
-    // await addLog({
-    //   fullname: req.user?.full_name || "مستخدم مجهول",
-    //   action: "حذف الكل",
-    //   message: "تم حذف جميع النواحي من النظام",
-    // });
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      campaign_id: req.user?.campaign_id || null,
+      action: "حذف الكل",
+      message: "تم حذف جميع النواحي من النظام",
+    });
 
     res.status(205).json({ message: "تم حذف جميع النواحي" });
   } catch (err) {

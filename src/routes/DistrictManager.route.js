@@ -4,6 +4,7 @@ const DistrictManager = require('../controllers/DistrictManager.controller');
 const upload = require('../config/multer')
 
 
+
 router.post('/', upload.fields([
   { name: 'profile_image' },
   { name: 'identity_image' },

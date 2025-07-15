@@ -1,8 +1,7 @@
 const FinanceCapital = require("../models/FinanceCapital.model");
 const User = require("../models/user.model");
-
-// 📥 Create
 const Budget = require("../models/Budget.model");
+const { addLog } = require("../utils/Logger");
 
 exports.createCapital = async (req, res) => {
   try {
@@ -46,8 +45,17 @@ exports.createCapital = async (req, res) => {
       await budget.save();
     }
 
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      campaign_id: req.user?.campaign_id || null,
+      action: "إضافة ",
+      message: `تم إضافة رأس المال بقيمة ${amount} للحملة`,
+    });
+
     res.status(201).json({
-      message: "تمت إضافة رأس المال وتحديث الميزانية",
+      message: "تمت إضافة رأس المال وتعديل الميزانية",
       data: { capital },
     });
   } catch (err) {
@@ -58,10 +66,11 @@ exports.createCapital = async (req, res) => {
   }
 };
 
-// 📃 Get All
+//  Get All
 exports.getAllCapitals = async (req, res) => {
   try {
     const records = await FinanceCapital.findAll({
+      where: { campaign_id: req.user.campaign_id },
       include: {
         model: User,
         attributes: ["id", "first_name", "second_name", "last_name"],
@@ -95,7 +104,6 @@ exports.getAllCapitals = async (req, res) => {
   }
 };
 
-// 🔍 Get By ID
 exports.getCapitalById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -132,7 +140,6 @@ exports.getCapitalById = async (req, res) => {
   }
 };
 
-// ✏️ Update
 exports.updateCapital = async (req, res) => {
   try {
     const { id } = req.params;
@@ -146,20 +153,28 @@ exports.updateCapital = async (req, res) => {
     if (affectedRows === 0) {
       return res
         .status(404)
-        .json({ message: "السجل غير موجود أو لم يتم التحديث" });
+        .json({ message: "السجل غير موجود أو لم يتم التعديل" });
     }
 
     // 🔁 Optional: Fetch the updated record
     const updatedRecord = await FinanceCapital.findByPk(id);
 
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      campaign_id: req.user?.campaign_id || null,
+      action: "تعديل ",
+      message: `تم تعديل رأس المال بقيمة ${amount} للحملة`,
+    });
+
     res.json({ data: updatedRecord });
   } catch (err) {
-    console.error("خطأ في التحديث:", err);
-    res.status(500).json({ message: "فشل في تحديث السجل", error: err.message });
+    console.error("خطأ في التعديل:", err);
+    res.status(500).json({ message: "فشل في تعديل السجل", error: err.message });
   }
 };
 
-// ❌ Delete
 exports.deleteCapital = async (req, res) => {
   try {
     const { id } = req.params;
@@ -180,14 +195,25 @@ exports.deleteCapital = async (req, res) => {
       budget.total_capital -= amount;
       budget.remaining_balance = Math.max(0, budget.total_capital - budget.total_expenses);
       await budget.save();
+
     }
 
-    res.json({ message: "تم الحذف بنجاح وتحديث الميزانية" });
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      campaign_id: req.user?.campaign_id || null,
+      action: "حذف ",
+      message: `تم حذف رأس المال بقيمة ${amount} للحملة`,
+    });
+
+    res.json({ message: "تم الحذف بنجاح وتعديل الميزانية" });
   } catch (err) {
     console.error("خطأ في الحذف:", err);
     res.status(500).json({ message: "فشل في حذف السجل", error: err.message });
   }
 };
+
 
 exports.deleteAllCapital = async (req, res) => {
   try {
@@ -196,6 +222,8 @@ exports.deleteAllCapital = async (req, res) => {
     if (!deleted) {
       return res.status(404).json({ message: "السجل غير موجود" });
     }
+
+    
 
     res.json({ message: "تم الحذف الجميع بنجاح" });
   } catch (err) {

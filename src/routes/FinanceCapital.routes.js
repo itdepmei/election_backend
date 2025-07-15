@@ -1,8 +1,9 @@
 const router = require('express').Router();
 const controller = require('../controllers/FinanceCapital.controller');
-const { authenticate } = require('../middlewares/auth.middleware')
+const { authenticate , authorizeExcept } = require('../middlewares/auth.middleware')
 
 router.use(authenticate)
+router.use(authorizeExcept('voter'));
 router.post('/', controller.createCapital);
 router.get('/', controller.getAllCapitals);
 router.get('/:id', controller.getCapitalById);

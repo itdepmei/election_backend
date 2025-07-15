@@ -26,6 +26,7 @@ const Notificiation = sequelize.define(
       'system_admin', 
       "owner", "all"),
       defaultValue : "all"
+      
 
     }
   },
