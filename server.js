@@ -96,46 +96,23 @@ app.use("/api/", authRoutes);
 
 
 
+global.io = io;
+
 io.on("connection", (socket) => {
-  console.log(`🔌 Socket connected: ${socket.id}`);
+  console.log("🟢 New client connected:", socket.id);
 
-  // Client tells server their role and userId for room joining
-  socket.on("join", ({ role, userId }) => {
-    if (role) {
-      socket.join(role); // join role room
-      socket.join(`user_${userId}`); // join user-specific room
-      
-      console.log(`👥 User ${userId} joined role room: ${role}`);
-    }
-  });
-
-  // Client requests all notifications
-  socket.on("notifications:fetchAll", async () => {
-    try {
-      const Notification = require("./models/Notification.model");
-      const notifications = await Notification.findAll({
-        order: [["createdAt", "DESC"]],
-      });
-
-      socket.emit("notifications:all", notifications);
-    } catch (err) {
-      socket.emit("notifications:error", {
-        message: "فشل في جلب الإشعارات",
-        error: err.message,
-      });
-    }
-  });
   socket.on("disconnect", () => {
-    console.log(`❌ Socket disconnected: ${socket.id}`);
+    console.log("🔴 Client disconnected:", socket.id);
   });
-});  
+});
+
 
 
 
 
 const PORT = process.env.PORT || 5000;
 initModels().then(() => {
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log("Server is running on http://localhost:5000");
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Server + Socket.IO running on http://localhost:${PORT}`);
   });
 });

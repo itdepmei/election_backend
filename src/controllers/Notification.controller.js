@@ -32,6 +32,16 @@ exports.createNotification = async (req, res) => {
 
     await NotificationRecipient.bulkCreate(recipients);
 
+    const io = req.app.get("io");
+    io.emit("new-notification", {
+      id: notification.id,
+      name,
+      message,
+      type,
+      send_to,
+      createdAt: notification.createdAt,
+    });
+
     res.status(201).json({
       data: notification,
       recipients: recipients,
@@ -96,7 +106,7 @@ exports.getNotificationsByUserId = async (req, res) => {
   try {
     const whereClause = { user_id: req.user.id };
     if (typeof isRead !== "undefined") {
-      whereClause.isRead = isRead === "true";  
+      whereClause.isRead = isRead === "true";
     }
 
     const records = await NotificationRecipient.findAll({
@@ -127,8 +137,6 @@ exports.getNotificationsByUserId = async (req, res) => {
 };
 
 exports.deleteAllRecords = async (req, res) => {
-
-  
   try {
     // The `truncate: true` option removes all rows and resets auto-increment counters
     await NotificationRecipient.destroy({ where: {} });
@@ -144,14 +152,13 @@ exports.deleteAllRecords = async (req, res) => {
   }
 };
 
-
-
 exports.deleteRecord = async (req, res) => {
-
-  const {notification_id} = req.params
+  const { notification_id } = req.params;
   try {
-    await NotificationRecipient.destroy({ where: {notification_id : notification_id} });
-    await Notification.destroy({ where: { id:notification_id} });
+    await NotificationRecipient.destroy({
+      where: { notification_id: notification_id },
+    });
+    await Notification.destroy({ where: { id: notification_id } });
 
     res.json({ message: "تم حذف  الاشعار بنجاح " });
   } catch (err) {
