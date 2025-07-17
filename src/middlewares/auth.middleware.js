@@ -38,8 +38,6 @@ exports.authorize = (roles) => {
   return (req, res, next) => {
     const userRole = req.user?.role?.toLowerCase().trim();
 
-    console.log("🟨 Required Roles:", roles);
-    console.log("🟦 User Role:", userRole);
 
     if (!userRole || !roles.includes(userRole)) {
       console.log("❌ Access Denied");

@@ -32,6 +32,7 @@ exports.createTapes = async (req, res) => {
       added_by : req.user.id ,
     }));
 
+
     const tapes = await Tapes.bulkCreate(tapesToCreate, { validate: true });
 
     
@@ -401,5 +402,44 @@ const per_district = await Tapes.findAll({
       message: "فشل في جلب إحصائيات الأشرطة",
       error: err.message,
     });
+  }
+};
+
+
+exports.toggleTapeStatus = async (req, res) => {
+  
+  const tapeId = req.params.id;
+  const { status } = req.body; 
+
+  try {
+    const tape = await Tapes.findByPk(tapeId);
+
+    if (!tape) {
+      return res.status(404).json({ message: "الشريط غير موجود" });
+    }
+
+    if (!['مقبول', 'مرفوض', 'قيد المراجعة'].includes(status)) {
+      return res.status(400).json({ message: "الحالة غير صالحة" });
+      }
+
+    tape.status = status;
+
+    await tape.save();
+
+    await addLog({
+      first_name: req.user?.first_name || "",
+      second_name: req.user?.second_name || "",
+      last_name: req.user?.last_name || "",
+      campaign_id: req.user?.campaign_id || null,
+      action: "تعديل",
+      message: `تم تغيير حالة الشريط إلى ${status}`,
+    });
+
+    
+
+    res.status(200).json({ data: tape });
+  } catch (err) {
+    console.error("خطأ أثناء تحديث الحالة:", err);
+    res.status(500).json({ message: "فشل في تحديث الحالة", error: err.message });
   }
 };

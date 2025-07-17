@@ -21,8 +21,10 @@ router.put(
 
   controller.updateTape
 );
+router.patch('/toggle/:id', controller.toggleTapeStatus);
 router.delete("/:id", controller.deleteTape);
 router.delete("/", controller.deleteAllTapes);
+
 router.get('/station/:id' , controller.getTapesByStationId)
 router.get('/center/:id' , controller.getTapesByCenterId)
 

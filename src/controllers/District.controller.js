@@ -8,7 +8,6 @@ const { addLog } = require("../utils/Logger");
 exports.createDistricts = async (req, res) => {
   try {
     const data = req.body;
-    console.log("create", req.body);
 
     if (!data || (Array.isArray(data) && data.length === 0)) {
       return res.status(400).json({ message: "لم يتم تزويد بيانات" });

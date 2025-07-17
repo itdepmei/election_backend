@@ -83,8 +83,8 @@ router.put("/users/:id",
 router.delete("/users/:id", adminDeleteUser);
 router.delete('/users' , deleteAllUsers)
 router.put("/toggle-active/:id", toggleActive);
+router.put("/confirm-voting/:id", confirmVoting);
 router.put("/set-admin/:id", setAdminRole);
 router.put("/change-role/:id", changeUserRole);
-router.put("/confirm-voting/:id", confirmVoting);
 
 module.exports = router;

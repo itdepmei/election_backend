@@ -15,7 +15,7 @@ const DistrictManager = require("../models/DistrictManager.model");
 // Admin: Add a new user
 
 exports.adminAddUser = async (req, res) => {
-  const t = await sequelize.transaction(); // start transaction
+  const t = await sequelize.transaction(); 
 
   try {
     const {
@@ -594,7 +594,7 @@ exports.changeUserRole = async (req, res) => {
 exports.confirmVoting = async (req, res) => {
   try {
     const userId = req.params.id; // ID of the user to confirm
-    const confirmerRole = req.user.role; // assuming req.user is set by auth middleware
+    const confirmerRole = req.user.role; // req.user is set by auth middleware
 
     // Only allow roles higher than 'voter'
     const allowedRoles = [
@@ -604,6 +604,7 @@ exports.confirmVoting = async (req, res) => {
       "district_manager",
       "finance_auditor",
       "system_admin",
+      "owner",
     ];
     if (!allowedRoles.includes(confirmerRole)) {
       return res
@@ -616,7 +617,7 @@ exports.confirmVoting = async (req, res) => {
       return res.status(404).json({ message: "المستخدم غير موجود" });
     }
 
-    user.confirmed_voting = true;
+    user.confirmed_voting = !user.confirmed_voting; // Toggle confirmed_voting status
     await user.save();
 
     await addLog({
@@ -628,7 +629,8 @@ exports.confirmVoting = async (req, res) => {
       message: `تم تأكيد تصويت المستخدم برقم الهاتف: ${user.phone_number}`,
     });
 
-    res.json({ data: user });
+
+    res.json({ data: stripPassword(user) });
   } catch (err) {
     res
       .status(500)

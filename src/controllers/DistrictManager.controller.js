@@ -113,7 +113,6 @@ exports.addDistrictManager = async (req, res) => {
     // Clean IDs: convert to numbers & filter invalid ones
     centers = centers.map((id) => Number(id)).filter(Boolean);
 
-    // console.log("✅ Cleaned election_center_ids:", centers);
 
     // Insert election center links
     for (const centerId of centers) {

@@ -22,7 +22,6 @@ const Budget = require("./Budget.model");
 const initModels = async () => {
   try {
     await sequelize.authenticate();
-    console.log("✅ Database connected");
 
     // ========== علاقات المحافظات والاقضية والنواحي ==========
     Governorate.hasMany(District, {
@@ -259,7 +258,7 @@ User.hasMany(NotificationRecipient, {
 });
 
 
-    ////
+    
 await sequelize.sync({ alter: true });
     console.log("✅ Models synced");
   } catch (err) {

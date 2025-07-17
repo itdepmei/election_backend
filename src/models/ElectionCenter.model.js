@@ -62,7 +62,16 @@ const ElectionCenter = sequelize.define('ElectionCenter', {
   },
   registration_center_name: {
     type: DataTypes.STRING
-  }
+  },
+  latitude: {
+    type: DataTypes.DECIMAL(10, 8), 
+    allowNull: false,
+  },
+  longitude: {
+    type: DataTypes.DECIMAL(11, 8), 
+    allowNull: false,
+  },
+  
 }, {
   tableName: 'election_centers',
   timestamps: false

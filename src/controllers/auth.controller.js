@@ -16,13 +16,12 @@ exports.register = [
     .withMessage("Password must be at least 6 characters long"),
 
   async (req, res) => {
-    console.log("Request body:", req.body);
+  
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
     try {
-      console.log(req.body);
       const {
         phone_number,
         password,
@@ -114,7 +113,6 @@ exports.register = [
       });
 
       res.status(201).json({ data: stripPassword(newUser), token: token });
-      console.log("res", res.cookie);
     } catch (err) {
       console.error(err);
       res
@@ -128,7 +126,6 @@ exports.login = [
   body("password").notEmpty().withMessage("Password is required"),
 
   async (req, res) => {
-    console.log("Request body:", req.body);
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {

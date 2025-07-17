@@ -67,7 +67,6 @@ exports.createElectionCenters = async (req, res) => {
   }
 };
 
-
 exports.getElectionCenters = async (req, res) => {
   try {
     const centers = await ElectionCenter.findAll({
@@ -80,6 +79,8 @@ exports.getElectionCenters = async (req, res) => {
         'supply_name',
         'registration_center_code',
         'registration_center_name',
+        'latitude',
+        'longitude',
       ],
       include: [
         {
@@ -155,7 +156,6 @@ exports.getElectionCenters = async (req, res) => {
   }
 };
 
-
 exports.getElectionCenterById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -171,6 +171,8 @@ exports.getElectionCenterById = async (req, res) => {
         'supply_name',
         'registration_center_code',
         'registration_center_name',
+        'latitude',
+        'longitude',
       ],
       include: [
         {
@@ -251,7 +253,6 @@ exports.getElectionCenterById = async (req, res) => {
     });
   }
 };
-
 
 exports.updateElectionCenter = async (req, res) => {
   try {
