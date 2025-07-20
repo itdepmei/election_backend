@@ -125,6 +125,7 @@ exports.register = [
 exports.login = [
   body("password").notEmpty().withMessage("Password is required"),
 
+
   async (req, res) => {
     const errors = validationResult(req);
 
@@ -134,6 +135,7 @@ exports.login = [
 
     try {
       const { phone_number, password } = req.body;
+      console.log("Login attempt for:", phone_number , password);
       const user = await User.findOne({ where: { phone_number } });
 
       if (!user || !(await bcrypt.compare(password, user.password_hash))) {
@@ -143,11 +145,10 @@ exports.login = [
       }
 
       const token = jwt.sign(
-        { id: user.id, phone_number: user.phone_number, role: user.role },
+        { id: user.id, phone_number: user.phone_number, role: user.role , election_center_id: user.election_center_id  , first_name: user.first_name, second_name: user.second_name, last_name: user.last_name , campaign_id: user.campaign_id },
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
-
 
 
 
@@ -271,11 +272,7 @@ exports.updateMe = async (req, res) => {
     });
 
     const token = jwt.sign(
-      {
-        id: fullUser.id,
-        phone_number: fullUser.phone_number,
-        role: fullUser.role,
-      },
+        { id: fullUser.id, phone_number: fullUser.phone_number, role: fullUser.role , election_center_id: fullUser.election_center_id  , first_name: fullUser.first_name, second_name: fullUser.second_name, last_name: fullUser.last_name },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -308,7 +305,7 @@ exports.changePassword = async (req, res) => {
     await user.save();
 
     const token = jwt.sign(
-      { id: user.id, phone_number: user.phone_number, role: user.role },
+      { id: user.id, phone_number: user.phone_number, role: user.role , election_center_id: user.election_center_id  , first_name: user.first_name, second_name: user.second_name, last_name: user.last_name },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );

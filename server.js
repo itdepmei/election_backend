@@ -64,7 +64,12 @@ app.use(
       scriptSrc: ["'self'", "'unsafe-inline'", "js.stripe.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com"],
       frameSrc: ["'self'", "js.stripe.com"],
-      fontSrc: ["'self'", "fonts.googleapis.com", "fonts.gstatic.com", "res.cloudinary.com"],
+      fontSrc: [
+        "'self'",
+        "fonts.googleapis.com",
+        "fonts.gstatic.com",
+        "res.cloudinary.com",
+      ],
       imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
       connectSrc: ["'self'"],
       upgradeInsecureRequests: [],
@@ -95,11 +100,17 @@ app.use("/api/", authRoutes);
 
 io.on("connection", (socket) => {
   console.log("🟢 New client connected:", socket.id);
+
   socket.on("register", (data) => {
     const { userId, token, deviceType } = data || {};
+    console.log("🔗 Registering client:", userId, "Device Type:", token);
     try {
       if (token) {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+        const decoded = jwt.verify(
+          token,
+          process.env.JWT_SECRET || "your-secret-key"
+        );
+        console.log("🔑 Token verified for user:", decoded);
         clients.set(socket.id, {
           userId: decoded.id || userId,
           socketId: socket.id,
@@ -109,6 +120,7 @@ io.on("connection", (socket) => {
       } else {
         clients.set(socket.id, {
           userId: userId || `guest_${socket.id}`,
+
           socketId: socket.id,
           lastSeen: new Date(),
           deviceType: deviceType || "web",
@@ -125,33 +137,67 @@ io.on("connection", (socket) => {
         socketId: socket.id,
       });
     } catch (error) {
-      socket.emit("registration_error", { message: "Registration failed: " + error.message });
+      socket.emit("registration_error", {
+        message: "Registration failed: " + error.message,
+      });
     }
   });
 
   socket.on("location_update", (data) => {
     // const clientInfo = clients.get(socket.id);
+    // console.log("📍 Location update received:", data, "Client Info:", clientInfo);
     // if (!data || !clientInfo) {
     //   return socket.emit("location_error", { message: "Client not registered or invalid data" });
     // }
 
-    const { latitude, longitude, timestamp, userId } = data;
-    if (!latitude || !longitude) {
-      return socket.emit("location_error", { message: "Invalid location data" });
+    const { latitude, longitude, timestamp, userId, token } = data;
+    let decoded = {};
+
+    if (token) {
+      try {
+        const decoded = jwt.verify(
+          token,
+          process.env.JWT_SECRET || "your-secret-key"
+        );
+        console.log("🔑 Token verified for user:", decoded);
+
+      } catch (error) {
+        return socket.emit("location_error", {
+          message: "Invalid token: " + error.message,
+        });
+      }
     }
+
+    if (!latitude || !longitude) {
+      console.error("❌ Invalid location data:", data);
+      return socket.emit("location_error", {
+        message: "Invalid location data",
+      });
+    }
+
+
 
     socket.emit("location_update_success", {
       message: "Location updated successfully",
       timestamp: new Date().toISOString(),
     });
 
+    console.log("📍 Location update received:")
+
     const locationData = {
       user_id: userId,
       location: [parseFloat(longitude), parseFloat(latitude)],
+      campaign_id: decoded.campaign_id || null,
+      phone_number: decoded.phone_number || "",
+      first_name: decoded.first_name || "",
+      second_name: decoded.second_name || "",
+      last_name: decoded.last_name || "",
+      election_center_id: decoded.election_center_id || null,
       timestamp: timestamp || new Date().toISOString(),
       socketId: socket.id,
       ...data,
     };
+    console.log("📍 Location update:", locationData);
     io.emit("new-location", locationData);
   });
 

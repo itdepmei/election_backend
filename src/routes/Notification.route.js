@@ -7,7 +7,7 @@ const { authenticate} = require('../middlewares/auth.middleware')
 
 router.use(authenticate)
 
-router.patch('/mark-read/:notification_id' , NotficiationController.markAsRead)
+router.put('/mark-read/:notification_id' , NotficiationController.markAsRead)
 router.post('/' , NotficiationController.createNotification);
 router.get('/all' , NotficiationController.getAllNotifications);
 router.get('/' , NotficiationController.getNotificationsByUserId)

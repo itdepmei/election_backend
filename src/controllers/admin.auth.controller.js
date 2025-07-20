@@ -12,8 +12,8 @@ const { addLog } = require("../utils/Logger");
 const Campaign = require("../models/Campain.model");
 const Coordinator = require("../models/Coordinator.model");
 const DistrictManager = require("../models/DistrictManager.model");
-// Admin: Add a new user
 
+// Admin: Add a new user
 exports.adminAddUser = async (req, res) => {
   const t = await sequelize.transaction(); 
 
@@ -29,7 +29,6 @@ exports.adminAddUser = async (req, res) => {
       is_active,
       birth_year,
       election_center_id,
-      election_centers_id = [],
       district_id,
       governorate_id,
       subdistrict_id,
@@ -637,3 +636,6 @@ exports.confirmVoting = async (req, res) => {
       .json({ message: "فشل في تأكيد التصويت", error: err.message });
   }
 };
+
+// hasVoted 
+

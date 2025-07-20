@@ -26,7 +26,6 @@ const { authenticate, authorize } = require("../middlewares/auth.middleware");
 const upload = require("../config/multer");
 
 
-
 router.post(
   "/register",
   upload.fields([
@@ -37,7 +36,6 @@ router.post(
   register
 );
 router.post("/login", login);
-
 
 
 router.use(authenticate);
