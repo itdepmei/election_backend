@@ -56,7 +56,7 @@ router.put(
 );
 
 
-// router.use(authorize(["system_admin" , "owner"]));
+router.use(authorize(["system_admin" , "owner" , 'observer' , 'coordinator' , 'district_manager' ]));
 
 router.post(
   "/users",
@@ -67,6 +67,7 @@ router.post(
   ]),
   adminAddUser
 );
+
 
 router.get("/users/confirm-voting", getAllConfirmedVoters);
 router.get("/users", getAllUsers);

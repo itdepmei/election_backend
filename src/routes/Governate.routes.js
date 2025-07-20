@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const governorateController = require('../controllers/Governate.controller');
-const {authenticate , authorizeExcept} = require('../middlewares/auth.middleware');
+const {authenticate , authorize} = require('../middlewares/auth.middleware');
 
 router.get('/', governorateController.getGovernorates);
 router.use(authenticate);
-router.use(authorizeExcept('voter'))
+router.use(authorize(["system_admin"]));
 
 
 router.post('/', governorateController.createGovernorates);

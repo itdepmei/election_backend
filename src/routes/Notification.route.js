@@ -6,6 +6,7 @@ const NotficiationController = require('../controllers/Notification.controller')
 const { authenticate} = require('../middlewares/auth.middleware')
 
 router.use(authenticate)
+
 router.patch('/mark-read/:notification_id' , NotficiationController.markAsRead)
 router.post('/' , NotficiationController.createNotification);
 router.get('/all' , NotficiationController.getAllNotifications);

@@ -3,10 +3,11 @@ const router = express.Router();
 const controller = require("../controllers/Tapes.controller");
 const upload = require("../config/multer");
 
-const { authenticate, authorize } = require("../middlewares/auth.middleware");
+const { authenticate, authorizeExcept } = require("../middlewares/auth.middleware");
 
 
 router.use(authenticate)
+router.use(authorizeExcept('voter'));
 router.post(
   "/",
   upload.fields([{ name: "tape_image", maxCount: 1 }]),

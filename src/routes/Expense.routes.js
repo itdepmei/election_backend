@@ -3,7 +3,6 @@ const controller = require("../controllers/Expense.controller");
 const { authorizeExcept , authenticate } = require('../middlewares/auth.middleware');
 
 router.use(authenticate)
-router.use(authorizeExcept('voter'));
 router.post("/", controller.createExpense);
 router.get("/", controller.getAllExpenses);
 router.get("/:id", controller.getExpenseById);

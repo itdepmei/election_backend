@@ -31,6 +31,8 @@ const app = express();
 
 const server = http.createServer(app);
 
+app.use(cors());
+
 const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] },
   allowEIO3: true,
@@ -55,7 +57,6 @@ app.use((req, res, next) => {
   }
 });
 
-app.use(cors());
 app.use(
   helmet.contentSecurityPolicy({
     directives: {

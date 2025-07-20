@@ -3,8 +3,10 @@ const router = express.Router();
 const Log = require('../controllers/log.controller');
 
 
-const { authenticate } = require('../middlewares/auth.middleware');
+const { authenticate, authorize } = require('../middlewares/auth.middleware');
+
 router.use(authenticate);
+router.use(authorize(["system_admin", "owner"]));
 router.get('/',Log.getLog );
 router.delete('/', Log.deleteLog);
 

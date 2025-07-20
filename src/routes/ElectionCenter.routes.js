@@ -3,10 +3,10 @@ const router = express.Router();
 const controller = require('../controllers/ElectionCenter.controller');
 
 
-const { authenticate, authorizeExcept } = require('../middlewares/auth.middleware');
+const { authenticate, authorize } = require('../middlewares/auth.middleware');
 router.get('/', controller.getElectionCenters);             
 router.use(authenticate);
-router.use(authorizeExcept('voter'));
+router.use(authorize(['system_admin'])); 
 router.post('/', controller.createElectionCenters);       
 router.get('/:id', controller.getElectionCenterById);
 router.put('/:id' , controller.updateElectionCenter) 
