@@ -103,16 +103,15 @@ io.on("connection", (socket) => {
 
   socket.on("register", (data) => {
     const { userId, token, deviceType } = data || {};
-    console.log("🔗 Registering client:", userId, "Device Type:", token);
     try {
       if (token) {
         const decoded = jwt.verify(
           token,
           process.env.JWT_SECRET || "your-secret-key"
         );
-        console.log("🔑 Token verified for user:", decoded);
         clients.set(socket.id, {
           userId: decoded.id || userId,
+          campaign_id: decoded.campaign_id || null,
           socketId: socket.id,
           lastSeen: new Date(),
           deviceType: deviceType || "web",
@@ -120,7 +119,7 @@ io.on("connection", (socket) => {
       } else {
         clients.set(socket.id, {
           userId: userId || `guest_${socket.id}`,
-
+          campaign_id: null,
           socketId: socket.id,
           lastSeen: new Date(),
           deviceType: deviceType || "web",
@@ -155,12 +154,11 @@ io.on("connection", (socket) => {
 
     if (token) {
       try {
-        const decoded = jwt.verify(
+         decoded = jwt.verify(
           token,
           process.env.JWT_SECRET || "your-secret-key"
         );
         console.log("🔑 Token verified for user:", decoded);
-
       } catch (error) {
         return socket.emit("location_error", {
           message: "Invalid token: " + error.message,
@@ -175,14 +173,12 @@ io.on("connection", (socket) => {
       });
     }
 
-
-
     socket.emit("location_update_success", {
       message: "Location updated successfully",
       timestamp: new Date().toISOString(),
     });
 
-    console.log("📍 Location update received:")
+    console.log("📍 Location update received:");
 
     const locationData = {
       user_id: userId,
@@ -197,8 +193,11 @@ io.on("connection", (socket) => {
       socketId: socket.id,
       ...data,
     };
-    console.log("📍 Location update:", locationData);
-    io.emit("new-location", locationData);
+   for (const [clientSocketId, clientInfo] of clients.entries()) {
+  if (clientInfo.campaign_id === decoded.campaign_id) {
+    io.to(clientSocketId).emit("new-location", locationData);
+  }
+}
   });
 
   socket.on("request_locations", (data) => {

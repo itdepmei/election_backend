@@ -90,6 +90,12 @@ exports.register = [
           id: newUser.id,
           phone_number: newUser.phone_number,
           role: newUser.role,
+          election_center_id: newUser.election_center_id,
+          first_name: newUser.first_name,
+          second_name: newUser.second_name,
+          last_name: newUser.last_name,
+          campaign_id: newUser.campaign_id || null,
+        
         },
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
