@@ -21,6 +21,7 @@ const {
   confirmVoting,
   deleteAllUsers,
   getAllConfirmedVoters,
+  HasVoted,
 } = require("../controllers/admin.auth.controller");
 const { authenticate, authorize } = require("../middlewares/auth.middleware");
 const upload = require("../config/multer");
@@ -52,6 +53,7 @@ router.put(
   ]),
   updateMe
 );
+router.put("/has-voted", HasVoted);
 
 
 router.use(authorize(["system_admin" , "owner" , 'observer' , 'coordinator' , 'district_manager' ]));

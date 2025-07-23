@@ -638,4 +638,33 @@ exports.confirmVoting = async (req, res) => {
 };
 
 // hasVoted 
+exports.HasVoted = async (req, res) => {
+  try {
+    const userId = req.user.id; // ID of the user to confirm
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: "المستخدم غير موجود" });
+    }
+
+    user.has_voted = !user.has_voted; // Toggle confirmed_voting status
+    await user.save();
+
+    await addLog({
+      first_name: req.user.first_name || "",
+      second_name: req.user.second_name || "",
+      last_name: req.user.last_name || "",
+      campaign_id: req.user.campaign_id || null,
+      action: "تعديل ",
+      message: `تم تسجيل تصويت المستخدم برقم الهاتف: ${user.phone_number}`,
+    });
+
+
+    res.json({ data: stripPassword(user) });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "فشل في تأكيد التصويت", error: err.message });
+  }
+};
 
