@@ -38,6 +38,19 @@ const User = sequelize.define('User', {
     type: DataTypes.TEXT,
     allowNull:true
   },
+  voting_card_number : {
+    type:DataTypes.STRING,
+    allowNull:true
+  },
+  station_id : {
+    type: DataTypes.INTEGER,
+    references: {
+      table : 'stations',
+      field : 'id'
+    }
+  },
+
+
   election_center_id: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -79,6 +92,11 @@ subdistrict_id :{
     type:DataTypes.INTEGER,
     allowNull : true
   },
+  address : {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  
   can_vote: {
     type: DataTypes.BOOLEAN,
     allowNull: true,
@@ -112,6 +130,7 @@ subdistrict_id :{
     allowNull: false,
     defaultValue: 'voter',
   },
+  
   has_voted: {
     type: DataTypes.BOOLEAN,
     allowNull:true,

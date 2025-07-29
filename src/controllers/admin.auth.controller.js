@@ -10,9 +10,8 @@ const Subdistrict = require("../models/Subdistrict.model");
 const sequelize = require("../config/database");
 const { addLog } = require("../utils/Logger");
 const Campaign = require("../models/Campain.model");
-const Coordinator = require("../models/Coordinator.model");
 const DistrictManager = require("../models/DistrictManager.model");
-
+const Station = require("../models/Station.model");
 // Admin: Add a new user
 exports.adminAddUser = async (req, res) => {
   const t = await sequelize.transaction(); 
@@ -36,6 +35,10 @@ exports.adminAddUser = async (req, res) => {
       confirmed_voting,
       has_updated_card,
       can_vote,
+      added_by , 
+      station_id,
+      address , 
+      voting_card_number
     } = req.body;
 
     const profileImageFile =
@@ -112,7 +115,7 @@ exports.adminAddUser = async (req, res) => {
         profile_image: profileImageFile || null,
         identity_image: identityImageFile || null,
         voting_card_image: cardImageFile || null,
-        added_by: req.user.id,
+        added_by,
         governorate_id: governorate_id || null,
         district_id: district_id || null,
         subdistrict_id: subdistrict_id || null,
@@ -123,6 +126,10 @@ exports.adminAddUser = async (req, res) => {
         is_active: is_active !== undefined ? is_active : true,
         confirmed_voting: false,
         campaign_id: req.user.campaign_id,
+        address,
+        voting_card_number,
+        station_id
+
       },
       { transaction: t }
     );
@@ -174,6 +181,10 @@ exports.getAllUsers = async (req, res) => {
           model: ElectionCenter,
           attributes: ["id", "name"],
         },
+        {
+          model : Station , 
+          attributes: ["id", "name"],
+        }
       ],
     });
     res.json({ data: stripPasswordFromArray(users) });
@@ -202,6 +213,10 @@ exports.getUserById = async (req, res) => {
           model: ElectionCenter,
           attributes: ["id", "name"],
         },
+        { model : Station,
+          attributes: ["id", "name"],
+
+        }
       ],
     });
 
@@ -231,6 +246,9 @@ exports.getAllUsersByRole = async (req, res) => {
           model: ElectionCenter,
           attributes: ["id", "name"],
         },
+        { model : Station,
+          attributes: ["id", "name"],
+          }
       ],
     });
     if (!role) {
@@ -262,6 +280,10 @@ exports.getAllConfirmedVoters = async (req, res) => {
           model: ElectionCenter,
           attributes: ["id", "name"],
         },
+        {
+          model: Station,
+          attributes: ["id", "name"],
+        }
       ],
     });
     res.json({ data: stripPasswordFromArray(users) });
@@ -301,6 +323,10 @@ exports.adminUpdateUser = async (req, res) => {
       identity_image,
       profile_image,
       voting_card_image,
+      voting_card_number,
+      address,
+      added_by,
+      station_id
     } = req.body;
 
     const profileImageFile = req.files?.profile_image?.[0]?.filename || null;
@@ -333,7 +359,10 @@ exports.adminUpdateUser = async (req, res) => {
       subdistrict_id,
       has_updated_card,
       can_vote,
-
+      voting_card_number,
+      address,
+      added_by,
+      station_id,
       profile_image: profileImageFile || profile_image || user.profile_image,
       identity_image:
         identityImageFile || identity_image || user.identity_image,
@@ -493,61 +522,6 @@ exports.changeUserRole = async (req, res) => {
     const previousRole = user.role;
     user.role = newRole;
     await user.save({ transaction });
-
-    // === Handle Coordinator Logic ===
-    if (newRole === "coordinator") {
-      let coordinator = await Coordinator.findOne({
-        where: { user_id: user.id },
-        transaction,
-      });
-
-      if (!coordinator) {
-        coordinator = await Coordinator.create({ user_id: user.id }, { transaction });
-      }
-
-      // ✅ Handle election_centers_id exactly like in addCoordinator
-      let centers = [];
-
-      if (Array.isArray(election_centers_id)) {
-        centers = election_centers_id;
-      } else if (typeof election_centers_id === "string") {
-        try {
-          const parsed = JSON.parse(election_centers_id);
-          centers = Array.isArray(parsed) ? parsed : [parsed];
-        } catch {
-          centers = election_centers_id.split(",");
-        }
-      } else if (typeof election_centers_id === "number") {
-        centers = [election_centers_id];
-      } else if (election_centers_id !== null && election_centers_id !== undefined) {
-        centers = [election_centers_id];
-      }
-
-      centers = centers.map((id) => Number(id)).filter(Boolean);
-
-      if (!centers.length) {
-        await transaction.rollback();
-        return res.status(400).json({
-          message: "الرجاء إدخال مراكز انتخابية صحيحة للمركز",
-        });
-      }
-
-      const validCenters = await ElectionCenter.findAll({
-        where: { id: centers },
-        transaction,
-      });
-
-      if (validCenters.length !== centers.length) {
-        const foundIds = validCenters.map((c) => c.id);
-        const missing = centers.filter((id) => !foundIds.includes(id));
-        await transaction.rollback();
-        return res.status(404).json({
-          message: `المراكز التالية غير موجودة: ${missing.join(", ")}`,
-        });
-      }
-
-      await coordinator.setElectionCenters(validCenters, { transaction });
-    }
 
     // === Handle District Manager Logic ===
     if (newRole === "district_manager") {

@@ -35,6 +35,9 @@ exports.register = [
         has_voted,
         election_center_id,
         role,
+        address , 
+        voting_card_number,
+        station_id
       } = req.body;
       const profileImageFile =
         req.files && req.files["profile_image"]
@@ -77,6 +80,9 @@ exports.register = [
         election_center_id,
         has_voted,
         role: role || "voter",
+        address ,
+        voting_card_number,
+        station_id,
         // election_center_id: election_center_id || null,
         profile_image: profileImageFile || null,
         identity_image: identityImageFile || null,
@@ -217,6 +223,9 @@ exports.updateMe = async (req, res) => {
       profile_image,
       identity_image,
       voting_card_image,
+      voting_card_number, 
+      address , 
+      station_id
     } = req.body;
 
     const profileImageFile = req.files?.profile_image?.[0]?.filename || null;
@@ -251,6 +260,10 @@ exports.updateMe = async (req, res) => {
       has_updated_card,
       has_voted,
       is_active,
+      station_id,
+      address,
+      voting_card_number,
+      station_id,
       profile_image: profileImageFile || profile_image || user.profile_image,
       identity_image:
         identityImageFile || identity_image || user.identity_image,
@@ -320,7 +333,6 @@ exports.changePassword = async (req, res) => {
       second_name: req.user?.second_name || "",
       last_name: req.user?.last_name || "",
       campaign_id: user.campaign_id || null,
-
       action: "تعديل",
       message: `تم تغيير كلمة مرور المستخدم : ${user.fullname}`,
     });

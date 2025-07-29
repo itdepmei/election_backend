@@ -47,9 +47,6 @@ const ElectionCenter = sequelize.define('ElectionCenter', {
   code: {
     type: DataTypes.STRING,
       allowNull: false,    
-  unique: true,         
-
-
     comment: "رمز مركز الاقتراع"
   },
   address: {

@@ -2,14 +2,12 @@ const sequelize = require("../config/database");
 
 const User = require("./user.model");
 const ElectionCenter = require("./ElectionCenter.model");
-const Coordinator = require("./Coordinator.model");
 const Governorate = require("./Governate.model");
 const District = require("./District.model");
 const Subdistrict = require("./Subdistrict.model");
 const DistrictManager = require("./DistrictManager.model");
 const Station = require("./Station.model");
 const Tapes = require("./Tapes.models");
-const CoordinatorElectionCenter = require("./CoordinatorElectionCenter");
 const DistrictManagerElectionCenter = require("./DistrictManagerElectionCenter");
 const Campaign = require("./Campain.model");
 const Log = require("./log.model");
@@ -124,12 +122,6 @@ const initModels = async () => {
       onDelete: "SET NULL",
     });
 
-    // ========== علاقة Coordinator مع User ==========
-    Coordinator.belongsTo(User, {
-      foreignKey: "user_id",
-      onDelete: "SET NULL",
-    });
-
     // ========== علاقة N:N بين Coordinator و ElectionCenter ==========
 
     // Station
@@ -171,27 +163,12 @@ Campaign.hasMany(User, {
 });
 
     
-
-    //
-    Coordinator.belongsTo(User, {
-      foreignKey: "user_id",
-      onDelete: "CASCADE",
-    });
-    User.hasMany(Coordinator, { foreignKey: "user_id", onDelete: "CASCADE" });
-
-    Coordinator.belongsToMany(ElectionCenter, {
-      through: CoordinatorElectionCenter,
-      foreignKey: "coordinator_id",
-      otherKey: "election_center_id",
-      onDelete: "CASCADE",
-    });
-
-    ElectionCenter.belongsToMany(Coordinator, {
-      through: CoordinatorElectionCenter,
-      foreignKey: "election_center_id",
-      otherKey: "coordinator_id",
-      onDelete: "CASCADE",
-    });
+    Station.hasMany(User , {
+      foreignKey: 'station_id',
+    })
+    User.belongsTo(Station, {
+      foreignKey: 'station_id',
+      });
 
     DistrictManager.belongsTo(User, {
       foreignKey: "user_id",
@@ -271,7 +248,6 @@ module.exports = {
   sequelize,
   User,
   ElectionCenter,
-  Coordinator,
   Governorate,
   District,
   Subdistrict,
