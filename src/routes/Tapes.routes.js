@@ -18,7 +18,7 @@ router.get("/", controller.getTapes);
 router.get("/:id", controller.getTapeById);
 router.put(
   "/:id",
-  upload.fields([{ name: "tape_image", maxCount: 1 }]),
+  upload.fields([{ name: "tape_image", maxCount: 10 }]),
 
   controller.updateTape
 );

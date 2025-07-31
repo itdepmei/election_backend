@@ -84,11 +84,6 @@ exports.getElectionCenters = async (req, res) => {
       ],
       include: [
         {
-          model: Station,
-          attributes: ['id'], // used for counting
-          required: false,
-        },
-        {
           model: User,
           attributes: ['id'], // users in center
           required: false,
@@ -129,7 +124,6 @@ exports.getElectionCenters = async (req, res) => {
         : null;
 
       // ✅ Count related records
-      plain.stations_count = plain.Stations?.length || 0;
       plain.users_count = plain.Users?.length || 0;
 
       // ✅ Combine manager name
@@ -142,7 +136,6 @@ exports.getElectionCenters = async (req, res) => {
       delete plain.Governorate;
       delete plain.District;
       delete plain.Subdistrict;
-      delete plain.Stations;
       delete plain.Users;
       delete plain.center_manager;
 
