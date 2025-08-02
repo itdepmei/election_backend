@@ -1,7 +1,7 @@
 const Expense = require('../models/Expense.model');
 const User = require('../models/user.model'); // if you want to join who added it
 const Budget = require("../models/Budget.model");
-
+const { addLog } = require("../utils/Logger");
 exports.createExpense = async (req, res) => {
   try {
     const { title, amount, description } = req.body;
@@ -39,7 +39,7 @@ exports.createExpense = async (req, res) => {
     });
 
     res.status(201).json({
-      data: { expense, budget },
+      data: { expense },
     });
   } catch (err) {
     console.error("خطأ في إضافة المصروف:", err);

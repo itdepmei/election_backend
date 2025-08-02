@@ -12,7 +12,7 @@ exports.createCapital = async (req, res) => {
     if(!campaignId) {
        res
       .status(400)
-      .json({ message: "لا تنتمي لحملة", error: err.message });
+      .json({ message: "لا تنتمي لحملة" });
 
     }
 
@@ -55,7 +55,6 @@ exports.createCapital = async (req, res) => {
     });
 
     res.status(201).json({
-      message: "تمت إضافة رأس المال وتعديل الميزانية",
       data: { capital },
     });
   } catch (err) {

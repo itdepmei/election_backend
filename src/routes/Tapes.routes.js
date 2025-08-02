@@ -10,7 +10,7 @@ router.use(authenticate)
 router.use(authorizeExcept('voter'));
 router.post(
   "/",
-  upload.fields([{ name: "tape_image", maxCount: 1 }]),
+  upload.fields([{ name: "tape_image", maxCount: 10 }]),
   controller.createTapes
 );
 router.get('/stats', controller.getTapesStats); // <-- move this up
